@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import math
+from datetime import date
 
 
 ASSUMPTIONS = {
     "absd": "Excluded: own-stay/no ABSD assumption.",
     "bsd": "Residential BSD uses current marginal rates: 1% first S$180k, 2% next S$180k, 3% next S$640k, 4% next S$500k, 5% next S$1.5m, 6% above S$3m.",
-    "ssd": "Simplified current SSD schedule: 12% under 1 year, 8% 1-2 years, 4% 2-3 years, 0% after 3 years.",
+    "ssd": "Historical residential SSD schedule by acquisition date: none before 20 Feb 2010; transitional BSD-based regimes in 2010; 16/12/8/4% for 14 Jan 2011-10 Mar 2017 acquisitions; 12/8/4% for 11 Mar 2017-3 Jul 2025 acquisitions; 16/12/8/4% for acquisitions from 4 Jul 2025.",
     "agent_commission_rate": 0.02,
     "legal_fee_buy": 3000,
     "legal_fee_sell": 3000,
@@ -44,16 +45,49 @@ def buyer_stamp_duty(price: float) -> float:
     )
 
 
-def seller_stamp_duty(price: float, holding_years: float) -> float:
-    if holding_years < 1:
-        rate = 0.12
-    elif holding_years < 2:
-        rate = 0.08
-    elif holding_years < 3:
-        rate = 0.04
-    else:
-        rate = 0.0
-    return round(price * rate, 2)
+def pre_2018_bsd(price: float) -> float:
+    return marginal_tax(price, [(180_000, 0.01), (180_000, 0.02), (None, 0.03)])
+
+
+def years_held_inclusive(buy_date: date, sell_date: date) -> int:
+    years = sell_date.year - buy_date.year
+    if (sell_date.month, sell_date.day) > (buy_date.month, buy_date.day):
+        years += 1
+    return max(1, years)
+
+
+def seller_stamp_duty(price: float, buy_date: date, sell_date: date) -> float:
+    if sell_date <= buy_date:
+        return 0.0
+
+    first_ssd = date(2010, 2, 20)
+    second_ssd = date(2010, 8, 30)
+    third_ssd = date(2011, 1, 14)
+    fourth_ssd = date(2017, 3, 11)
+    fifth_ssd = date(2025, 7, 4)
+    holding_year = years_held_inclusive(buy_date, sell_date)
+
+    if buy_date < first_ssd:
+        return 0.0
+    if buy_date < second_ssd:
+        return pre_2018_bsd(price) if holding_year <= 1 else 0.0
+    if buy_date < third_ssd:
+        bsd = pre_2018_bsd(price)
+        if holding_year <= 1:
+            return bsd
+        if holding_year <= 2:
+            return round(bsd * 2 / 3, 2)
+        if holding_year <= 3:
+            return round(bsd / 3, 2)
+        return 0.0
+    if buy_date < fourth_ssd:
+        rates = {1: 0.16, 2: 0.12, 3: 0.08, 4: 0.04}
+        return round(price * rates.get(holding_year, 0.0), 2)
+    if buy_date < fifth_ssd:
+        rates = {1: 0.12, 2: 0.08, 3: 0.04}
+        return round(price * rates.get(holding_year, 0.0), 2)
+    rates = {1: 0.16, 2: 0.12, 3: 0.08, 4: 0.04}
+    return round(price * rates.get(holding_year, 0.0), 2)
 
 
 def annualized_return(start_value: float, end_value: float, years: float) -> float | None:

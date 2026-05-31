@@ -91,16 +91,23 @@ class PipelineTests(unittest.TestCase):
             with self.subTest(price=price):
                 self.assertEqual(buyer_stamp_duty(price), expected)
 
-    def test_seller_stamp_duty_current_simplified_schedule(self):
+    def test_seller_stamp_duty_uses_historical_residential_schedule_by_buy_date(self):
         cases = [
-            (1_000_000, 0.5, 120_000),
-            (1_000_000, 1.5, 80_000),
-            (1_000_000, 2.5, 40_000),
-            (1_000_000, 3.1, 0),
+            ("2010-02-19", "2010-08-01", 1_000_000, 0),
+            ("2010-02-20", "2010-08-01", 1_000_000, 24_600),
+            ("2010-08-30", "2012-08-01", 1_000_000, 16_400),
+            ("2011-01-14", "2011-08-01", 1_000_000, 160_000),
+            ("2011-01-14", "2014-08-01", 1_000_000, 40_000),
+            ("2017-03-11", "2017-08-01", 1_000_000, 120_000),
+            ("2017-03-11", "2020-08-01", 1_000_000, 0),
+            ("2025-07-04", "2026-01-01", 1_000_000, 160_000),
         ]
-        for price, holding_years, expected in cases:
-            with self.subTest(holding_years=holding_years):
-                self.assertEqual(seller_stamp_duty(price, holding_years), expected)
+        for buy_date, sell_date, price, expected in cases:
+            with self.subTest(buy_date=buy_date, sell_date=sell_date):
+                self.assertEqual(
+                    seller_stamp_duty(price, date.fromisoformat(buy_date), date.fromisoformat(sell_date)),
+                    expected,
+                )
 
     def test_annualized_return_reports_simple_return_under_one_year(self):
         self.assertAlmostEqual(annualized_return(1_000_000, 1_100_000, 0.5), 0.10)
