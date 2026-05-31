@@ -5,6 +5,7 @@ const state = {
   summary: [],
   trend: [],
   metadata: null,
+  trendChart: null,
 };
 
 const labels = {
@@ -217,7 +218,7 @@ function setOptionsFromTrend(selectId, field) {
   const current = select.value;
   select.innerHTML = "";
   option(select, "All", "All");
-  unique(state.trend.map((row) => row[field])).forEach((value) => option(select, value));
+  unique(state.trend.map((row) => row[field]).filter((value) => value !== "All")).forEach((value) => option(select, value));
   if ([...select.options].some((item) => item.value === current)) select.value = current;
 }
 
@@ -250,72 +251,104 @@ function renderTrend() {
     )
     .join("");
 
-  const svg = byId("trendChart");
-  svg.innerHTML = "";
+  const canvas = byId("trendChart");
+  if (state.trendChart) {
+    state.trendChart.destroy();
+    state.trendChart = null;
+  }
   if (rows.length < 2) {
-    svg.innerHTML = `<text x="30" y="145" fill="#66717f">Not enough matching trend rows.</text>`;
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#697386";
+    context.font = "14px sans-serif";
+    context.fillText("Not enough matching trend rows.", 24, 42);
     return;
   }
 
-  const width = 900;
-  const height = 280;
-  const pad = { left: 54, right: 24, top: 22, bottom: 38 };
-  const years = rows.map((row) => Number(row.year));
   const values = rows.flatMap((row) => [row.p25, row.p75, row.median]);
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
   const minValue = Math.min(-0.05, ...values);
   const maxValue = Math.max(0.05, ...values);
-  const x = (year) => pad.left + ((year - minYear) / Math.max(1, maxYear - minYear)) * (width - pad.left - pad.right);
-  const y = (value) =>
-    height - pad.bottom - ((value - minValue) / Math.max(0.001, maxValue - minValue)) * (height - pad.top - pad.bottom);
-  const points = (field) => rows.map((row) => `${x(row.year)},${y(row[field])}`).join(" ");
-  const tooltipWidth = 174;
-  const tooltipHeight = 112;
-  const tooltipX = (row) => Math.min(width - pad.right - tooltipWidth, Math.max(pad.left + 6, x(row.year) + 12));
-  const tooltipY = (row) => Math.min(height - pad.bottom - tooltipHeight, Math.max(pad.top + 6, y(row.median) - 56));
-  const band = `${points("p75")} ${rows
-    .slice()
-    .reverse()
-    .map((row) => `${x(row.year)},${y(row.p25)}`)
-    .join(" ")}`;
+  const labels = rows.map((row) => String(row.year));
+  const commonLine = {
+    tension: 0.25,
+    pointRadius: 2.5,
+    pointHoverRadius: 5,
+    borderWidth: 2,
+  };
 
-  svg.innerHTML = `
-    <line class="axis" x1="${pad.left}" y1="${y(0)}" x2="${width - pad.right}" y2="${y(0)}"></line>
-    <line class="axis" x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}"></line>
-    <polygon class="band" points="${band}"></polygon>
-    <polyline class="percentile-line percentile-line-muted" points="${points("p25")}"></polyline>
-    <polyline class="percentile-line percentile-line-muted" points="${points("p75")}"></polyline>
-    <polyline class="line" points="${points("median")}"></polyline>
-    ${rows
-      .map(
-        (row) => `<g class="hover-point" tabindex="0">
-          <line class="hover-guide" x1="${x(row.year)}" y1="${pad.top}" x2="${x(row.year)}" y2="${height - pad.bottom}"></line>
-          <circle class="dot p25-dot" cx="${x(row.year)}" cy="${y(row.p25)}" r="3"></circle>
-          <circle class="dot" cx="${x(row.year)}" cy="${y(row.median)}" r="4"></circle>
-          <circle class="dot p75-dot" cx="${x(row.year)}" cy="${y(row.p75)}" r="3"></circle>
-          <rect class="hover-hit" x="${x(row.year) - 10}" y="${pad.top}" width="20" height="${height - pad.top - pad.bottom}"></rect>
-          <g class="chart-tooltip" transform="translate(${tooltipX(row)} ${tooltipY(row)})">
-            <rect width="${tooltipWidth}" height="${tooltipHeight}" rx="6"></rect>
-            <text x="10" y="20" class="tooltip-title">${row.year}</text>
-            <text x="10" y="42">P25: ${fmtPct.format(row.p25)}</text>
-            <text x="10" y="62">Median: ${fmtPct.format(row.median)}</text>
-            <text x="10" y="82">P75: ${fmtPct.format(row.p75)}</text>
-            <text x="10" y="102">Loss: ${fmtPct.format(row.loss_share)}  n=${fmtNum.format(row.n)}</text>
-          </g>
-        </g>`
-      )
-      .join("")}
-    <text x="${pad.left}" y="${height - 10}" fill="#66717f">${minYear}</text>
-    <text x="${width - pad.right - 42}" y="${height - 10}" fill="#66717f">${maxYear}</text>
-    <text x="8" y="${y(maxValue) + 4}" fill="#66717f">${fmtPct.format(maxValue)}</text>
-    <text x="8" y="${y(minValue) + 4}" fill="#66717f">${fmtPct.format(minValue)}</text>
-  `;
-
-  svg.querySelectorAll(".hover-point").forEach((group) => {
-    const bringToFront = () => svg.appendChild(group);
-    group.addEventListener("mouseenter", bringToFront);
-    group.addEventListener("focus", bringToFront);
+  state.trendChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "P75",
+          data: rows.map((row) => row.p75),
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(37, 99, 235, 0.14)",
+          fill: "+1",
+          pointRadius: 0,
+          borderWidth: 1.5,
+          tension: 0.25,
+        },
+        {
+          label: "P25",
+          data: rows.map((row) => row.p25),
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(37, 99, 235, 0.14)",
+          fill: false,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          borderDash: [5, 5],
+          tension: 0.25,
+        },
+        {
+          label: "Median",
+          data: rows.map((row) => row.median),
+          borderColor: "#2563eb",
+          backgroundColor: "#2563eb",
+          fill: false,
+          ...commonLine,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterBody(items) {
+              const row = rows[items[0].dataIndex];
+              return [`Loss share: ${fmtPct.format(row.loss_share)}`, `n: ${fmtNum.format(row.n)}`];
+            },
+            label(context) {
+              return `${context.dataset.label}: ${fmtPct.format(context.parsed.y)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: "rgba(105, 115, 134, 0.12)" },
+          ticks: { maxTicksLimit: 9, color: "#697386" },
+        },
+        y: {
+          min: minValue,
+          max: maxValue,
+          grid: { color: "rgba(105, 115, 134, 0.16)" },
+          ticks: {
+            maxTicksLimit: 7,
+            color: "#697386",
+            callback(value) {
+              return fmtPct.format(value);
+            },
+          },
+        },
+      },
+    },
   });
 }
 
@@ -324,7 +357,7 @@ function renderMethodology() {
   byId("methodology").textContent =
     "Returns are computed from exact Project Name + Address + Postal Code sequential repeat-sale pairs. The exported JSON contains aggregate statistics only.";
   byId("assumptions").innerHTML = Object.entries(meta.assumptions)
-    .map(([key, value]) => `<li><strong>${key}</strong>: ${value}</li>`)
+    .map(([key, value]) => `<li><strong>${key.replaceAll("_", " ")}</strong>: ${value}</li>`)
     .join("");
 }
 

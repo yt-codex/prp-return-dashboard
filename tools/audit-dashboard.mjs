@@ -37,10 +37,15 @@ async function auditViewport(browser, name, viewport) {
   const summaryRows = await page.locator("#summaryBody tr").count();
   const chartRows = await page.locator(".bar-row").count();
   const trendRows = await page.locator("#trendBody tr").count();
-  const tooltipBeforeHover = await page.locator(".chart-tooltip").first().evaluate((el) => getComputedStyle(el).opacity);
-
-  await page.locator(".hover-hit").nth(Math.floor((await page.locator(".hover-hit").count()) / 2)).hover();
-  const tooltipAfterHover = await page.locator(".chart-tooltip").last().evaluate((el) => getComputedStyle(el).opacity);
+  const canvasVisible = await page.locator("#trendChart").isVisible();
+  const allOptionCounts = await Promise.all(
+    ["#segmentSelect", "#tenureSelect", "#regionSelect", "#holdingSelect"].map((selector) =>
+      page.locator(`${selector} option`, { hasText: "All" }).count()
+    )
+  );
+  allOptionCounts.forEach((count, index) => {
+    if (count !== 1) issues.push(`filter ${index} has ${count} All options`);
+  });
 
   await page.locator("#cutSelect").selectOption("planning_area");
   const planningAreaRows = await page.locator("#summaryBody tr").count();
@@ -73,8 +78,7 @@ async function auditViewport(browser, name, viewport) {
     summaryRows,
     chartRows,
     trendRows,
-    tooltipBeforeHover,
-    tooltipAfterHover,
+    canvasVisible,
     planningAreaRows,
     planningAreaChartRows,
     filteredTrendRows,

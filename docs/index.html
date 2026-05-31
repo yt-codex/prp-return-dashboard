@@ -82,7 +82,9 @@
           <span><i class="legend-swatch percentile"></i>P25/P75</span>
           <span><i class="legend-swatch band"></i>Interquartile band</span>
         </div>
-        <svg id="trendChart" viewBox="0 0 900 280" role="img" aria-label="Annualized return trend"></svg>
+        <div class="chart-shell">
+          <canvas id="trendChart" aria-label="Return trend chart"></canvas>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -108,6 +110,7 @@
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

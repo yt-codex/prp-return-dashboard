@@ -1,15 +1,15 @@
 :root {
   color-scheme: light;
-  --bg: #f6f5f1;
+  --bg: #f4f7fb;
   --panel: #ffffff;
-  --ink: #20252b;
-  --muted: #66717f;
-  --line: #d9ded8;
-  --accent: #0f766e;
-  --accent-dark: #115e59;
-  --accent-2: #b45309;
+  --ink: #243041;
+  --muted: #697386;
+  --line: #dbe2ea;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-2: #e11d48;
   --band: #dbeafe;
-  --shadow: 0 14px 40px rgba(32, 37, 43, 0.08);
+  --shadow: 0 14px 40px rgba(36, 48, 65, 0.09);
 }
 
 * {
@@ -32,8 +32,9 @@ body {
   padding: 34px clamp(18px, 4vw, 48px) 30px;
   border-bottom: 1px solid var(--line);
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.10), rgba(180, 83, 9, 0.06)),
-    #fbfaf7;
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 38%),
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(225, 29, 72, 0.06)),
+    #f8fbff;
 }
 
 .eyebrow {
@@ -116,7 +117,7 @@ main {
 
 .snapshot-card {
   padding: 16px;
-  background: #fbfaf7;
+  background: #f8fbff;
 }
 
 .snapshot-card span,
@@ -144,12 +145,12 @@ main {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfaf7;
+  background: #f8fbff;
 }
 
 .definition-card:first-child {
-  border-color: rgba(15, 118, 110, 0.35);
-  background: #f2fbf8;
+  border-color: rgba(37, 99, 235, 0.35);
+  background: #eff6ff;
 }
 
 .definition-card h3 {
@@ -223,7 +224,7 @@ select {
   border: 1px solid #edf0ec;
   border-radius: 8px;
   padding: 10px;
-  background: #fcfcfb;
+  background: #fdfefe;
 }
 
 .bar-row {
@@ -245,7 +246,7 @@ select {
 .bar {
   height: 100%;
   min-width: 2px;
-  background: linear-gradient(90deg, var(--accent), #14a090);
+  background: linear-gradient(90deg, var(--accent), #38bdf8);
 }
 
 .bar.negative {
@@ -280,15 +281,21 @@ th {
   letter-spacing: 0;
 }
 
-#trendChart {
-  width: 100%;
-  height: auto;
+.chart-shell {
+  height: 340px;
   margin-bottom: 10px;
+  padding: 12px;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(15, 118, 110, 0.025), rgba(255, 255, 255, 0)),
-    #fcfcfb;
+    linear-gradient(180deg, rgba(37, 99, 235, 0.035), rgba(255, 255, 255, 0)),
+    #fdfefe;
+}
+
+#trendChart {
+  width: 100%;
+  height: 100%;
 }
 
 .trend-legend {
@@ -320,7 +327,7 @@ th {
 
 .legend-swatch.percentile {
   height: 0;
-  border-top: 2px dashed #7aa8a2;
+  border-top: 2px dashed #60a5fa;
   border-radius: 0;
 }
 
