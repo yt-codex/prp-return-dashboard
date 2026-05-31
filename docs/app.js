@@ -20,6 +20,37 @@ const labels = {
   sell_year: "Sell year",
 };
 
+const postalDistrictNames = {
+  "01": "Raffles Place, Cecil, Marina, People's Park",
+  "02": "Anson, Tanjong Pagar",
+  "03": "Queenstown, Tiong Bahru",
+  "04": "Telok Blangah, Harbourfront",
+  "05": "Pasir Panjang, Hong Leong Garden, Clementi New Town",
+  "06": "High Street, Beach Road (part)",
+  "07": "Middle Road, Golden Mile",
+  "08": "Little India",
+  "09": "Orchard, Cairnhill, River Valley",
+  "10": "Ardmore, Bukit Timah, Holland Road, Tanglin",
+  "11": "Watten Estate, Novena, Thomson",
+  "12": "Balestier, Toa Payoh, Serangoon",
+  "13": "Macpherson, Braddell",
+  "14": "Geylang, Eunos",
+  "15": "Katong, Joo Chiat, Amber Road",
+  "16": "Bedok, Upper East Coast, Eastwood, Kew Drive",
+  "17": "Loyang, Changi",
+  "18": "Tampines, Pasir Ris",
+  "19": "Serangoon Garden, Hougang, Punggol",
+  "20": "Bishan, Ang Mo Kio",
+  "21": "Upper Bukit Timah, Clementi Park, Ulu Pandan",
+  "22": "Jurong",
+  "23": "Hillview, Dairy Farm, Bukit Panjang, Choa Chu Kang",
+  "24": "Lim Chu Kang, Tengah",
+  "25": "Kranji, Woodgrove",
+  "26": "Upper Thomson, Springleaf",
+  "27": "Yishun, Sembawang",
+  "28": "Seletar",
+};
+
 function byId(id) {
   return document.getElementById(id);
 }
@@ -39,6 +70,36 @@ function unique(values) {
 
 function selectedDefinition() {
   return byId("definitionSelect").value;
+}
+
+function holdingSortValue(value) {
+  const order = {
+    "<1 year": 0,
+    "1-3 years": 1,
+    "3-5 years": 2,
+    "5-10 years": 3,
+    "10+ years": 4,
+  };
+  return order[value] ?? 99;
+}
+
+function crossSectionSort(cut) {
+  if (cut === "buy_year" || cut === "sell_year") {
+    return (a, b) => Number(a.value) - Number(b.value);
+  }
+  if (cut === "holding_period_bucket") {
+    return (a, b) => holdingSortValue(a.value) - holdingSortValue(b.value);
+  }
+  return (a, b) => b.median - a.median || b.n - a.n;
+}
+
+function displayValue(cut, value) {
+  if (cut === "postal_district") {
+    const district = String(value).padStart(2, "0");
+    const name = postalDistrictNames[district];
+    return name ? `${district} - ${name}` : district;
+  }
+  return value;
 }
 
 function renderMetrics() {
@@ -70,8 +131,7 @@ function renderSummary() {
   const cut = byId("cutSelect").value;
   const rows = state.summary
     .filter((row) => row.return_definition === selectedDefinition() && row.cut === cut)
-    .sort((a, b) => b.median - a.median || b.n - a.n)
-    .slice(0, 30);
+    .sort(crossSectionSort(cut));
 
   const maxAbs = Math.max(0.01, ...rows.map((row) => Math.abs(row.median)));
   byId("barChart").innerHTML = rows
@@ -80,7 +140,7 @@ function renderSummary() {
       const width = Math.max(2, Math.abs(row.median / maxAbs) * 100);
       const cls = row.median < 0 ? "bar negative" : "bar";
       return `<div class="bar-row">
-        <div>${row.value}</div>
+        <div>${displayValue(cut, row.value)}</div>
         <div class="bar-track"><div class="${cls}" style="width:${width}%"></div></div>
         <div>${fmtPct.format(row.median)}</div>
       </div>`;
@@ -90,7 +150,7 @@ function renderSummary() {
   byId("summaryBody").innerHTML = rows
     .map(
       (row) => `<tr>
-        <td>${row.value}</td>
+        <td>${displayValue(cut, row.value)}</td>
         <td>${fmtPct.format(row.median)}</td>
         <td>${fmtPct.format(row.p25)}</td>
         <td>${fmtPct.format(row.p75)}</td>

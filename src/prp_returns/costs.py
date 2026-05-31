@@ -59,6 +59,8 @@ def seller_stamp_duty(price: float, holding_years: float) -> float:
 def annualized_return(start_value: float, end_value: float, years: float) -> float | None:
     if start_value <= 0 or end_value <= 0 or years <= 0:
         return None
+    if years < 1:
+        return end_value / start_value - 1
     return (end_value / start_value) ** (1 / years) - 1
 
 
@@ -86,4 +88,3 @@ def total_interest_paid(principal: float, annual_rate: float, term_years: int, e
     payment = principal * monthly_rate / (1 - (1 + monthly_rate) ** -months_total)
     principal_repaid = principal - outstanding_principal(principal, annual_rate, term_years, elapsed_years)
     return max(0.0, payment * months_elapsed - principal_repaid)
-

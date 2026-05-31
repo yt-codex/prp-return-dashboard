@@ -34,7 +34,7 @@ The pipeline:
 
 No ABSD is included, under an own-stay simplifying assumption.
 
-- `gross_unlevered`: price-only CAGR.
+- `gross_unlevered`: price-only return; annualized for holding periods of at least 1 year, simple holding-period return for holdings under 1 year.
 - `net_basic`: includes buyer stamp duty, seller stamp duty where applicable, sale agent commission, and legal fee proxies.
 - `net_full`: `net_basic` plus property tax and MCST/maintenance proxies.
 - `levered_basic`: default LTV/downpayment mortgage equity CAGR with amortization, mortgage interest paid, and selected transaction costs.

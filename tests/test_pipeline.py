@@ -6,7 +6,7 @@ import unittest
 from prp_returns.io import read_transactions
 from prp_returns.aggregation import aggregate_returns
 from prp_returns.build import filter_rows_for_trend_basis
-from prp_returns.costs import buyer_stamp_duty, seller_stamp_duty
+from prp_returns.costs import annualized_return, buyer_stamp_duty, seller_stamp_duty
 from prp_returns.features import property_segment, tenure_group
 from prp_returns.pairs import make_repeat_sale_pairs
 
@@ -101,6 +101,10 @@ class PipelineTests(unittest.TestCase):
         for price, holding_years, expected in cases:
             with self.subTest(holding_years=holding_years):
                 self.assertEqual(seller_stamp_duty(price, holding_years), expected)
+
+    def test_annualized_return_reports_simple_return_under_one_year(self):
+        self.assertAlmostEqual(annualized_return(1_000_000, 1_100_000, 0.5), 0.10)
+        self.assertAlmostEqual(annualized_return(1_000_000, 1_210_000, 2.0), 0.10)
 
     def test_aggregate_returns_reports_percentiles_loss_share_and_n(self):
         rows = [
