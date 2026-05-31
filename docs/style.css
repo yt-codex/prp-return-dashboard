@@ -97,6 +97,31 @@ main {
   padding: 18px;
 }
 
+.definition-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.definition-card {
+  min-height: 128px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf7;
+}
+
+.definition-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.definition-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -243,6 +268,10 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .definition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .filters {
     justify-content: start;
     margin-top: 14px;
@@ -256,6 +285,10 @@ th {
 
 @media (max-width: 520px) {
   .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .definition-grid {
     grid-template-columns: 1fr;
   }
 }

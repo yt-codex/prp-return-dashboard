@@ -46,7 +46,7 @@ See `docs/assets/metadata.json` after `make update` for the exact assumption val
 
 The dashboard includes aggregate cuts by property segment, tenure group, buy sale type, planning region, planning area, postal district, age at purchase, holding-period bucket, buy year, and sell year. Apartment and Condominium are combined as `Private non-landed`; Freehold and 999-year are combined as `Freehold/999-year`.
 
-Time trend assets are seasoned for comparability: buy-year trends exclude purchase cohorts with less than 3 years of observation from the latest source month, and sell-year trends exclude the latest calendar year when the source month is not December.
+Time trend assets are seasoned for comparability: buy-year trends exclude purchase cohorts with less than 3 years of observation from the latest source month, and sell-year trends exclude the first 5 sell years plus the latest calendar year when the source month is not December.
 
 ## Caveats
 

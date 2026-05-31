@@ -54,6 +54,18 @@ function renderMetrics() {
     .join("");
 }
 
+function renderDefinitions() {
+  const definitions = state.metadata.return_definitions || {};
+  byId("definitionCards").innerHTML = Object.entries(definitions)
+    .map(
+      ([name, description]) => `<article class="definition-card">
+        <h3>${name.replaceAll("_", " ")}</h3>
+        <p>${description}</p>
+      </article>`
+    )
+    .join("");
+}
+
 function renderSummary() {
   const cut = byId("cutSelect").value;
   const rows = state.summary
@@ -216,6 +228,7 @@ async function init() {
   state.metadata = metadata;
   wireControls();
   renderMetrics();
+  renderDefinitions();
   renderSummary();
   renderTrend();
   renderMethodology();

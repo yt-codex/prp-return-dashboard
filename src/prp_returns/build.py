@@ -26,6 +26,7 @@ SUMMARY_DIMENSIONS = [
 ]
 
 TREND_BUY_COHORT_MIN_OBSERVATION_YEARS = 3
+TREND_SELL_YEAR_DROP_FIRST_N_YEARS = 5
 
 
 def filter_rows_for_trend_basis(rows: list[dict], basis: str, latest_source_month: str | None) -> list[dict]:
@@ -41,8 +42,17 @@ def filter_rows_for_trend_basis(rows: list[dict], basis: str, latest_source_mont
     if basis == "buy_year":
         max_buy_year = latest_year - TREND_BUY_COHORT_MIN_OBSERVATION_YEARS
         return [row for row in rows if int(row.get("buy_year", latest_year + 1)) <= max_buy_year]
-    if basis == "sell_year" and latest_month < 12:
-        return [row for row in rows if int(row.get("sell_year", latest_year)) < latest_year]
+    if basis == "sell_year":
+        sell_years = sorted({int(row["sell_year"]) for row in rows if row.get("sell_year") is not None})
+        min_allowed_sell_year = (
+            sell_years[TREND_SELL_YEAR_DROP_FIRST_N_YEARS]
+            if len(sell_years) > TREND_SELL_YEAR_DROP_FIRST_N_YEARS
+            else latest_year + 1
+        )
+        filtered = [row for row in rows if int(row.get("sell_year", latest_year)) >= min_allowed_sell_year]
+        if latest_month < 12:
+            filtered = [row for row in filtered if int(row.get("sell_year", latest_year)) < latest_year]
+        return filtered
     return rows
 
 
@@ -95,7 +105,7 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
         "assumptions": ASSUMPTIONS,
         "trend_policy": {
             "buy_year": f"Excludes buy cohorts with less than {TREND_BUY_COHORT_MIN_OBSERVATION_YEARS} years of observation from the latest source month.",
-            "sell_year": "Excludes the latest sell year when the source month is not December, because it is an incomplete calendar year.",
+            "sell_year": f"Excludes the first {TREND_SELL_YEAR_DROP_FIRST_N_YEARS} sell years and excludes the latest sell year when the source month is not December, because those edge cohorts are less comparable.",
         },
         "privacy": "Assets contain aggregate statistics only; raw rows, addresses, postal codes, and unit-level chains are not exported.",
     }

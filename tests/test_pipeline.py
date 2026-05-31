@@ -146,18 +146,26 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rows[0]["price"], 1_000_000)
 
     def test_filter_rows_for_trend_basis_excludes_immature_buy_cohorts_and_partial_sell_year(self):
-        rows = [
+        buy_fixture = [
             {"buy_year": 2022, "sell_year": 2025},
             {"buy_year": 2023, "sell_year": 2026},
             {"buy_year": 2024, "sell_year": 2025},
             {"buy_year": 2026, "sell_year": 2026},
         ]
+        sell_fixture = [{"buy_year": 1995, "sell_year": year} for year in range(1995, 2000)] + buy_fixture
 
-        buy_rows = filter_rows_for_trend_basis(rows, "buy_year", "2026-04")
-        sell_rows = filter_rows_for_trend_basis(rows, "sell_year", "2026-04")
+        buy_rows = filter_rows_for_trend_basis(buy_fixture, "buy_year", "2026-04")
+        sell_rows = filter_rows_for_trend_basis(sell_fixture, "sell_year", "2026-04")
 
         self.assertEqual([row["buy_year"] for row in buy_rows], [2022, 2023])
         self.assertEqual([row["sell_year"] for row in sell_rows], [2025, 2025])
+
+    def test_filter_rows_for_trend_basis_drops_first_five_sell_years(self):
+        rows = [{"buy_year": 1995, "sell_year": year} for year in range(1995, 2003)]
+
+        sell_rows = filter_rows_for_trend_basis(rows, "sell_year", "2026-04")
+
+        self.assertEqual([row["sell_year"] for row in sell_rows], [2000, 2001, 2002])
 
 
 if __name__ == "__main__":
