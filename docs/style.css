@@ -238,6 +238,7 @@ select {
 }
 
 .bar-track {
+  position: relative;
   height: 12px;
   background: #eef1ed;
   border-radius: 999px;
@@ -245,13 +246,25 @@ select {
 }
 
 .bar {
+  position: absolute;
+  top: 0;
   height: 100%;
   min-width: 2px;
   background: linear-gradient(90deg, var(--accent), #38bdf8);
 }
 
 .bar.negative {
-  background: var(--accent-2);
+  background: linear-gradient(90deg, #fb7185, var(--accent-2));
+}
+
+.bar-zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(105, 115, 134, 0.45);
+  z-index: 1;
 }
 
 .table-wrap {

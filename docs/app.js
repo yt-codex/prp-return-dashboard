@@ -193,11 +193,12 @@ function renderSummary() {
   const maxAbs = Math.max(0.01, ...rows.map((row) => Math.abs(row.median)));
   byId("barChart").innerHTML = rows
     .map((row) => {
-      const width = Math.max(2, Math.abs(row.median / maxAbs) * 100);
+      const width = Math.max(2, Math.abs(row.median / maxAbs) * 50);
+      const left = row.median < 0 ? 50 - width : 50;
       const cls = row.median < 0 ? "bar negative" : "bar";
       return `<div class="bar-row">
         <div>${displayValue(cut, row.value)}</div>
-        <div class="bar-track"><div class="${cls}" style="width:${width}%"></div></div>
+        <div class="bar-track"><span class="bar-zero"></span><div class="${cls}" style="left:${left}%;width:${width}%"></div></div>
         <div>${fmtPct.format(row.median)}</div>
       </div>`;
     })
