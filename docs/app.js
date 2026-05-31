@@ -190,8 +190,18 @@ function wireControls() {
     renderSummary();
     renderTrend();
   }));
-  ["basisSelect", "segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"].forEach((id) =>
-    byId(id).addEventListener("change", renderTrend)
+  byId("basisSelect").addEventListener("change", renderTrend);
+  ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"].forEach((id) =>
+    byId(id).addEventListener("change", () => {
+      if (byId(id).value !== "All") {
+        ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"]
+          .filter((otherId) => otherId !== id)
+          .forEach((otherId) => {
+            byId(otherId).value = "All";
+          });
+      }
+      renderTrend();
+    })
   );
 }
 
