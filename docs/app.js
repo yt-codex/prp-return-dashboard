@@ -178,7 +178,7 @@ function renderTrend() {
     <polyline class="line" points="${points("median")}"></polyline>
     ${rows
       .map(
-        (row) => `<g class="hover-point">
+        (row) => `<g class="hover-point" tabindex="0">
           <line class="hover-guide" x1="${x(row.year)}" y1="${pad.top}" x2="${x(row.year)}" y2="${height - pad.bottom}"></line>
           <circle class="dot p25-dot" cx="${x(row.year)}" cy="${y(row.p25)}" r="3"></circle>
           <circle class="dot" cx="${x(row.year)}" cy="${y(row.median)}" r="4"></circle>
@@ -200,6 +200,12 @@ function renderTrend() {
     <text x="8" y="${y(maxValue) + 4}" fill="#66717f">${fmtPct.format(maxValue)}</text>
     <text x="8" y="${y(minValue) + 4}" fill="#66717f">${fmtPct.format(minValue)}</text>
   `;
+
+  svg.querySelectorAll(".hover-point").forEach((group) => {
+    const bringToFront = () => svg.appendChild(group);
+    group.addEventListener("mouseenter", bringToFront);
+    group.addEventListener("focus", bringToFront);
+  });
 }
 
 function renderMethodology() {
