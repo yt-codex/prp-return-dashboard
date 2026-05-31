@@ -1,0 +1,27 @@
+{
+  "name": "prp-return-dashboard",
+  "version": "1.0.0",
+  "description": "Static GitHub Pages-ready dashboard for historical repeat-sale returns using local REALIS private residential monthly transaction CSVs.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "audit:dashboard": "node tools/audit-dashboard.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yt-codex/prp-return-dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yt-codex/prp-return-dashboard/issues"
+  },
+  "homepage": "https://github.com/yt-codex/prp-return-dashboard#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
