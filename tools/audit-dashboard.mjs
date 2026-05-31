@@ -29,8 +29,8 @@ async function auditViewport(browser, name, viewport) {
   page.on("requestfailed", (request) => issues.push(`request failed: ${request.url()} ${request.failure()?.errorText}`));
 
   await page.goto(baseUrl, { waitUntil: "networkidle" });
-  await page.waitForSelector("#summaryBody tr");
-  await page.waitForSelector("#trendBody tr");
+  await page.waitForSelector("#summaryBody tr", { state: "attached" });
+  await page.waitForSelector("#trendBody tr", { state: "attached" });
 
   const metrics = await page.locator(".metric").count();
   const definitionCards = await page.locator(".definition-card").count();
@@ -38,6 +38,20 @@ async function auditViewport(browser, name, viewport) {
   const chartRows = await page.locator(".bar-row").count();
   const trendRows = await page.locator("#trendBody tr").count();
   const canvasVisible = await page.locator("#trendChart").isVisible();
+  const summaryTableOpenDefault = await page.locator("#summaryTableToggle").evaluate((element) => element.open);
+  const trendTableOpenDefault = await page.locator("#trendTableToggle").evaluate((element) => element.open);
+  if (summaryTableOpenDefault) issues.push("cross-sectional table is open by default");
+  if (trendTableOpenDefault) issues.push("time trend table is open by default");
+
+  await page.locator("#summaryTableToggle summary").click();
+  const summaryTableOpens = await page.locator("#summaryTableToggle").evaluate((element) => element.open);
+  await page.locator("#summaryTableToggle summary").click();
+  await page.locator("#trendTableToggle summary").click();
+  const trendTableOpens = await page.locator("#trendTableToggle").evaluate((element) => element.open);
+  await page.locator("#trendTableToggle summary").click();
+  if (!summaryTableOpens) issues.push("cross-sectional table disclosure did not open");
+  if (!trendTableOpens) issues.push("time trend table disclosure did not open");
+
   const allOptionCounts = await Promise.all(
     ["#segmentSelect", "#tenureSelect", "#regionSelect", "#holdingSelect"].map((selector) =>
       page.locator(`${selector} option`, { hasText: "All" }).count()
@@ -84,6 +98,8 @@ async function auditViewport(browser, name, viewport) {
     chartRows,
     trendRows,
     canvasVisible,
+    summaryTableOpenDefault,
+    trendTableOpenDefault,
     planningAreaRows,
     planningAreaChartRows,
     selectedTrendView,

@@ -46,21 +46,24 @@
           </label>
         </div>
         <div id="barChart" class="bar-chart"></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Value</th>
-                <th>Median</th>
-                <th>P25</th>
-                <th>P75</th>
-                <th>Loss share</th>
-                <th>n</th>
-              </tr>
-            </thead>
-            <tbody id="summaryBody"></tbody>
-          </table>
-        </div>
+        <details class="table-disclosure" id="summaryTableToggle">
+          <summary>Cross-sectional table</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Value</th>
+                  <th>Median</th>
+                  <th>P25</th>
+                  <th>P75</th>
+                  <th>Loss share</th>
+                  <th>n</th>
+                </tr>
+              </thead>
+              <tbody id="summaryBody"></tbody>
+            </table>
+          </div>
+        </details>
       </section>
 
       <section class="panel">
@@ -86,12 +89,15 @@
         <div class="chart-shell">
           <canvas id="trendChart" aria-label="Return trend chart"></canvas>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead id="trendHead"></thead>
-            <tbody id="trendBody"></tbody>
-          </table>
-        </div>
+        <details class="table-disclosure" id="trendTableToggle">
+          <summary>Time trend table</summary>
+          <div class="table-wrap">
+            <table>
+              <thead id="trendHead"></thead>
+              <tbody id="trendBody"></tbody>
+            </table>
+          </div>
+        </details>
       </section>
 
       <section class="panel caveats">

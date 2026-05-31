@@ -271,6 +271,43 @@ select {
   overflow: auto;
 }
 
+.table-disclosure {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.table-disclosure summary {
+  align-items: center;
+  color: var(--accent-dark);
+  cursor: pointer;
+  display: flex;
+  font-weight: 700;
+  justify-content: space-between;
+  list-style: none;
+  padding: 11px 13px;
+}
+
+.table-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.table-disclosure summary::after {
+  color: var(--muted);
+  content: "Show";
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.table-disclosure[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.table-disclosure[open] summary::after {
+  content: "Hide";
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
