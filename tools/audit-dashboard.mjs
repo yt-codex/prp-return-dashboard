@@ -49,6 +49,18 @@ async function auditViewport(browser, name, viewport) {
     issues.push(`planning area chart rows ${planningAreaChartRows} did not match table rows ${planningAreaRows}`);
   }
 
+  await page.locator("#segmentSelect").selectOption("Private non-landed");
+  await page.locator("#tenureSelect").selectOption("99-year leasehold");
+  const selectedSegment = await page.locator("#segmentSelect").inputValue();
+  const selectedTenure = await page.locator("#tenureSelect").inputValue();
+  const filteredTrendRows = await page.locator("#trendBody tr").count();
+  if (selectedSegment !== "Private non-landed" || selectedTenure !== "99-year leasehold") {
+    issues.push(`combined filter selection did not persist: segment=${selectedSegment} tenure=${selectedTenure}`);
+  }
+  if (filteredTrendRows < 2) {
+    issues.push(`combined segment+tenure filter returned only ${filteredTrendRows} trend rows`);
+  }
+
   await mkdir("artifacts", { recursive: true });
   await page.screenshot({ path: `artifacts/dashboard-${name}.png`, fullPage: true });
 
@@ -65,6 +77,7 @@ async function auditViewport(browser, name, viewport) {
     tooltipAfterHover,
     planningAreaRows,
     planningAreaChartRows,
+    filteredTrendRows,
     issues,
   };
 }

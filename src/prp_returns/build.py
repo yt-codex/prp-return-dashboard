@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from itertools import combinations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +28,21 @@ SUMMARY_DIMENSIONS = [
 
 TREND_BUY_COHORT_MIN_OBSERVATION_YEARS = 3
 TREND_SELL_YEAR_DROP_FIRST_N_YEARS = 5
+TREND_FILTER_FIELDS = ["property_segment", "tenure_group", "planning_region", "holding_period_bucket"]
+TREND_SCHEMA = [
+    "time_basis",
+    "year",
+    "property_segment",
+    "tenure_group",
+    "planning_region",
+    "holding_period_bucket",
+    "return_definition",
+    "n",
+    "median",
+    "p25",
+    "p75",
+    "loss_share",
+]
 
 
 def filter_rows_for_trend_basis(rows: list[dict], basis: str, latest_source_month: str | None) -> list[dict]:
@@ -61,6 +77,10 @@ def write_json(path: Path, payload) -> None:
     path.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
 
 
+def compact_trend_rows(rows: list[dict]) -> dict:
+    return {"schema": TREND_SCHEMA, "rows": [[row.get(field) for field in TREND_SCHEMA] for row in rows]}
+
+
 def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
     transactions, source_meta = read_transactions(source_dir)
     valid_rows = [row for row in transactions if row.get("sale_date") and row.get("price")]
@@ -75,23 +95,16 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
             summary.append(row)
 
     trend_rows = []
-    trend_filter_fields = ["property_segment", "tenure_group", "planning_region", "holding_period_bucket"]
     for basis in ("buy_year", "sell_year"):
         trend_source_rows = filter_rows_for_trend_basis(return_rows, basis, source_meta.get("latest_source_month"))
-        for row in aggregate_returns(trend_source_rows, [basis], min_n=min_n):
-            row["time_basis"] = basis
-            row["year"] = row.pop(basis)
-            for field in trend_filter_fields:
-                row[field] = "All"
-            trend_rows.append(row)
-        for field in trend_filter_fields:
-            for row in aggregate_returns(trend_source_rows, [basis, field], min_n=min_n):
-                row["time_basis"] = basis
-                row["year"] = row.pop(basis)
-                value = row.pop(field)
-                for filter_field in trend_filter_fields:
-                    row[filter_field] = value if filter_field == field else "All"
-                trend_rows.append(row)
+        for subset_size in range(len(TREND_FILTER_FIELDS) + 1):
+            for subset in combinations(TREND_FILTER_FIELDS, subset_size):
+                for row in aggregate_returns(trend_source_rows, [basis, *subset], min_n=min_n):
+                    row["time_basis"] = basis
+                    row["year"] = row.pop(basis)
+                    for field in TREND_FILTER_FIELDS:
+                        row.setdefault(field, "All")
+                    trend_rows.append(row)
 
     metadata = {
         **source_meta,
@@ -111,7 +124,7 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
     }
 
     write_json(out_dir / "summary.json", summary)
-    write_json(out_dir / "trend.json", trend_rows)
+    write_json(out_dir / "trend.json", compact_trend_rows(trend_rows))
     write_json(out_dir / "metadata.json", metadata)
     return metadata
 

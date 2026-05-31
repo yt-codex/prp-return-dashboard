@@ -72,6 +72,11 @@ function selectedDefinition() {
   return byId("definitionSelect").value;
 }
 
+function normalizeTrend(payload) {
+  if (Array.isArray(payload)) return payload;
+  return payload.rows.map((row) => Object.fromEntries(payload.schema.map((field, index) => [field, row[index]])));
+}
+
 function holdingSortValue(value) {
   const order = {
     "<1 year": 0,
@@ -112,6 +117,52 @@ function renderMetrics() {
   ];
   byId("metrics").innerHTML = metrics
     .map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`)
+    .join("");
+}
+
+function renderSnapshot() {
+  const definition = selectedDefinition();
+  const segmentRows = state.summary
+    .filter((row) => row.return_definition === definition && row.cut === "property_segment")
+    .sort((a, b) => b.median - a.median);
+  const trendRows = trendFiltered();
+  const latest = trendRows[trendRows.length - 1];
+  const previous = trendRows[trendRows.length - 2];
+  const bestSegment = segmentRows[0];
+  const lowestSegment = segmentRows[segmentRows.length - 1];
+  const delta = latest && previous ? latest.median - previous.median : null;
+
+  const cards = [
+    {
+      label: "Latest trend median",
+      value: latest ? fmtPct.format(latest.median) : "-",
+      detail: latest ? `${latest.year}, n=${fmtNum.format(latest.n)}` : "No matching trend row",
+    },
+    {
+      label: "One-period change",
+      value: delta === null ? "-" : `${delta >= 0 ? "+" : ""}${fmtPct.format(delta)}`,
+      detail: latest && previous ? `${previous.year} to ${latest.year}` : "Select a trend with 2+ years",
+    },
+    {
+      label: "Highest segment",
+      value: bestSegment ? fmtPct.format(bestSegment.median) : "-",
+      detail: bestSegment ? displayValue("property_segment", bestSegment.value) : "No segment rows",
+    },
+    {
+      label: "Lowest segment",
+      value: lowestSegment ? fmtPct.format(lowestSegment.median) : "-",
+      detail: lowestSegment ? displayValue("property_segment", lowestSegment.value) : "No segment rows",
+    },
+  ];
+
+  byId("snapshot").innerHTML = cards
+    .map(
+      (card) => `<article class="snapshot-card">
+        <span>${card.label}</span>
+        <strong>${card.value}</strong>
+        <small>${card.detail}</small>
+      </article>`
+    )
     .join("");
 }
 
@@ -290,19 +341,17 @@ function wireControls() {
 
   ["definitionSelect", "cutSelect"].forEach((id) => byId(id).addEventListener("change", () => {
     renderDefinitions();
+    renderSnapshot();
     renderSummary();
     renderTrend();
   }));
-  byId("basisSelect").addEventListener("change", renderTrend);
+  byId("basisSelect").addEventListener("change", () => {
+    renderSnapshot();
+    renderTrend();
+  });
   ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"].forEach((id) =>
     byId(id).addEventListener("change", () => {
-      if (byId(id).value !== "All") {
-        ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"]
-          .filter((otherId) => otherId !== id)
-          .forEach((otherId) => {
-            byId(otherId).value = "All";
-          });
-      }
+      renderSnapshot();
       renderTrend();
     })
   );
@@ -315,10 +364,11 @@ async function init() {
     fetch("assets/metadata.json").then((res) => res.json()),
   ]);
   state.summary = summary;
-  state.trend = trend;
+  state.trend = normalizeTrend(trend);
   state.metadata = metadata;
   wireControls();
   renderMetrics();
+  renderSnapshot();
   renderDefinitions();
   renderSummary();
   renderTrend();
