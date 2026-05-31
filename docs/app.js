@@ -70,7 +70,7 @@ function renderSummary() {
   const cut = byId("cutSelect").value;
   const rows = state.summary
     .filter((row) => row.return_definition === selectedDefinition() && row.cut === cut)
-    .sort((a, b) => b.n - a.n || b.median - a.median)
+    .sort((a, b) => b.median - a.median || b.n - a.n)
     .slice(0, 30);
 
   const maxAbs = Math.max(0.01, ...rows.map((row) => Math.abs(row.median)));
@@ -159,6 +159,10 @@ function renderTrend() {
   const y = (value) =>
     height - pad.bottom - ((value - minValue) / Math.max(0.001, maxValue - minValue)) * (height - pad.top - pad.bottom);
   const points = (field) => rows.map((row) => `${x(row.year)},${y(row[field])}`).join(" ");
+  const tooltipWidth = 174;
+  const tooltipHeight = 112;
+  const tooltipX = (row) => Math.min(width - pad.right - tooltipWidth, Math.max(pad.left + 6, x(row.year) + 12));
+  const tooltipY = (row) => Math.min(height - pad.bottom - tooltipHeight, Math.max(pad.top + 6, y(row.median) - 56));
   const band = `${points("p75")} ${rows
     .slice()
     .reverse()
@@ -169,8 +173,28 @@ function renderTrend() {
     <line class="axis" x1="${pad.left}" y1="${y(0)}" x2="${width - pad.right}" y2="${y(0)}"></line>
     <line class="axis" x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}"></line>
     <polygon class="band" points="${band}"></polygon>
+    <polyline class="percentile-line percentile-line-muted" points="${points("p25")}"></polyline>
+    <polyline class="percentile-line percentile-line-muted" points="${points("p75")}"></polyline>
     <polyline class="line" points="${points("median")}"></polyline>
-    ${rows.map((row) => `<circle class="dot" cx="${x(row.year)}" cy="${y(row.median)}" r="3"></circle>`).join("")}
+    ${rows
+      .map(
+        (row) => `<g class="hover-point">
+          <line class="hover-guide" x1="${x(row.year)}" y1="${pad.top}" x2="${x(row.year)}" y2="${height - pad.bottom}"></line>
+          <circle class="dot p25-dot" cx="${x(row.year)}" cy="${y(row.p25)}" r="3"></circle>
+          <circle class="dot" cx="${x(row.year)}" cy="${y(row.median)}" r="4"></circle>
+          <circle class="dot p75-dot" cx="${x(row.year)}" cy="${y(row.p75)}" r="3"></circle>
+          <rect class="hover-hit" x="${x(row.year) - 10}" y="${pad.top}" width="20" height="${height - pad.top - pad.bottom}"></rect>
+          <g class="chart-tooltip" transform="translate(${tooltipX(row)} ${tooltipY(row)})">
+            <rect width="${tooltipWidth}" height="${tooltipHeight}" rx="6"></rect>
+            <text x="10" y="20" class="tooltip-title">${row.year}</text>
+            <text x="10" y="42">P25: ${fmtPct.format(row.p25)}</text>
+            <text x="10" y="62">Median: ${fmtPct.format(row.median)}</text>
+            <text x="10" y="82">P75: ${fmtPct.format(row.p75)}</text>
+            <text x="10" y="102">Loss: ${fmtPct.format(row.loss_share)}  n=${fmtNum.format(row.n)}</text>
+          </g>
+        </g>`
+      )
+      .join("")}
     <text x="${pad.left}" y="${height - 10}" fill="#66717f">${minYear}</text>
     <text x="${width - pad.right - 42}" y="${height - 10}" fill="#66717f">${maxYear}</text>
     <text x="8" y="${y(maxValue) + 4}" fill="#66717f">${fmtPct.format(maxValue)}</text>

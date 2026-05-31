@@ -245,8 +245,62 @@ th {
   stroke-width: 3;
 }
 
+.percentile-line {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.percentile-line-muted {
+  stroke: #7aa8a2;
+  stroke-dasharray: 5 5;
+  opacity: 0.72;
+}
+
 .dot {
   fill: var(--accent);
+}
+
+.p25-dot, .p75-dot {
+  fill: #7aa8a2;
+}
+
+.hover-point .hover-guide,
+.hover-point .chart-tooltip {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hover-point:hover .hover-guide,
+.hover-point:hover .chart-tooltip,
+.hover-point:focus .hover-guide,
+.hover-point:focus .chart-tooltip {
+  opacity: 1;
+}
+
+.hover-guide {
+  stroke: #687887;
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.hover-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.chart-tooltip rect {
+  fill: #ffffff;
+  stroke: #aeb8b4;
+  stroke-width: 1;
+}
+
+.chart-tooltip text {
+  fill: var(--ink);
+  font-size: 13px;
+}
+
+.chart-tooltip .tooltip-title {
+  font-weight: 700;
 }
 
 .caveats ul {
