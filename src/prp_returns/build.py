@@ -25,6 +25,26 @@ SUMMARY_DIMENSIONS = [
     "sell_year",
 ]
 
+TREND_BUY_COHORT_MIN_OBSERVATION_YEARS = 3
+
+
+def filter_rows_for_trend_basis(rows: list[dict], basis: str, latest_source_month: str | None) -> list[dict]:
+    if not latest_source_month:
+        return rows
+    try:
+        latest_year_text, latest_month_text = latest_source_month.split("-", 1)
+        latest_year = int(latest_year_text)
+        latest_month = int(latest_month_text)
+    except ValueError:
+        return rows
+
+    if basis == "buy_year":
+        max_buy_year = latest_year - TREND_BUY_COHORT_MIN_OBSERVATION_YEARS
+        return [row for row in rows if int(row.get("buy_year", latest_year + 1)) <= max_buy_year]
+    if basis == "sell_year" and latest_month < 12:
+        return [row for row in rows if int(row.get("sell_year", latest_year)) < latest_year]
+    return rows
+
 
 def write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -47,14 +67,15 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
     trend_rows = []
     trend_filter_fields = ["property_segment", "tenure_group", "planning_region", "holding_period_bucket"]
     for basis in ("buy_year", "sell_year"):
-        for row in aggregate_returns(return_rows, [basis], min_n=min_n):
+        trend_source_rows = filter_rows_for_trend_basis(return_rows, basis, source_meta.get("latest_source_month"))
+        for row in aggregate_returns(trend_source_rows, [basis], min_n=min_n):
             row["time_basis"] = basis
             row["year"] = row.pop(basis)
             for field in trend_filter_fields:
                 row[field] = "All"
             trend_rows.append(row)
         for field in trend_filter_fields:
-            for row in aggregate_returns(return_rows, [basis, field], min_n=min_n):
+            for row in aggregate_returns(trend_source_rows, [basis, field], min_n=min_n):
                 row["time_basis"] = basis
                 row["year"] = row.pop(basis)
                 value = row.pop(field)
@@ -72,6 +93,10 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
         "min_n": min_n,
         "return_definitions": RETURN_DEFINITIONS,
         "assumptions": ASSUMPTIONS,
+        "trend_policy": {
+            "buy_year": f"Excludes buy cohorts with less than {TREND_BUY_COHORT_MIN_OBSERVATION_YEARS} years of observation from the latest source month.",
+            "sell_year": "Excludes the latest sell year when the source month is not December, because it is an incomplete calendar year.",
+        },
         "privacy": "Assets contain aggregate statistics only; raw rows, addresses, postal codes, and unit-level chains are not exported.",
     }
 

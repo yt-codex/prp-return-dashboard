@@ -5,6 +5,7 @@ import unittest
 
 from prp_returns.io import read_transactions
 from prp_returns.aggregation import aggregate_returns
+from prp_returns.build import filter_rows_for_trend_basis
 from prp_returns.costs import buyer_stamp_duty, seller_stamp_duty
 from prp_returns.features import property_segment, tenure_group
 from prp_returns.pairs import make_repeat_sale_pairs
@@ -143,6 +144,20 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(metadata["latest_source_month"], "2024-01")
         self.assertEqual(rows[0]["project_name"], "CAFÉ COURT")
         self.assertEqual(rows[0]["price"], 1_000_000)
+
+    def test_filter_rows_for_trend_basis_excludes_immature_buy_cohorts_and_partial_sell_year(self):
+        rows = [
+            {"buy_year": 2022, "sell_year": 2025},
+            {"buy_year": 2023, "sell_year": 2026},
+            {"buy_year": 2024, "sell_year": 2025},
+            {"buy_year": 2026, "sell_year": 2026},
+        ]
+
+        buy_rows = filter_rows_for_trend_basis(rows, "buy_year", "2026-04")
+        sell_rows = filter_rows_for_trend_basis(rows, "sell_year", "2026-04")
+
+        self.assertEqual([row["buy_year"] for row in buy_rows], [2022, 2023])
+        self.assertEqual([row["sell_year"] for row in sell_rows], [2025, 2025])
 
 
 if __name__ == "__main__":
