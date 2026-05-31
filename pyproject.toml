@@ -1,0 +1,13 @@
+[project]
+name = "prp-return-dashboard"
+version = "0.1.0"
+description = "Static repeat-sale return dashboard for Singapore private residential property transactions."
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
