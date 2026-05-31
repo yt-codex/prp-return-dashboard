@@ -13,11 +13,11 @@ from .pairs import RepeatSalePair
 
 
 RETURN_DEFINITIONS = {
-    "gross_unlevered": "Price-only annualized return before transaction costs, taxes, maintenance, and financing.",
-    "net_basic": "Unlevered return after BSD, SSD when applicable, sale agent commission, and legal fee proxies.",
-    "net_full": "net_basic plus property tax and MCST/maintenance proxies during the holding period.",
-    "levered_basic": "Equity CAGR using default LTV mortgage, amortization, BSD, SSD, sale agent commission, legal fee proxies, and mortgage interest paid.",
-    "levered_full": "levered_basic plus property tax and MCST/maintenance proxies during the holding period.",
+    "gross_unlevered": "Price-only return before transaction costs, taxes, maintenance, and financing. Annualized for holding periods of at least 1 year; simple holding-period return under 1 year.",
+    "net_basic": "Unlevered return after BSD, SSD when applicable, sale agent commission, and legal fee proxies. Annualized for holding periods of at least 1 year; simple under 1 year.",
+    "net_full": "net_basic plus property tax and MCST/maintenance proxies during the holding period. Annualized for holding periods of at least 1 year; simple under 1 year.",
+    "levered_basic": "Equity return using default LTV mortgage, amortization, BSD, SSD, sale agent commission, legal fee proxies, and mortgage interest paid. Annualized for holding periods of at least 1 year; simple under 1 year.",
+    "levered_full": "levered_basic plus property tax and MCST/maintenance proxies during the holding period. Annualized for holding periods of at least 1 year; simple under 1 year.",
 }
 
 
@@ -108,4 +108,3 @@ def returns_for_pair(pair: RepeatSalePair) -> list[dict]:
         row["return"] = value
         rows.append(row)
     return rows
-

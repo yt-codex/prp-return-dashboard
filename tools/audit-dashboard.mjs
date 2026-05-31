@@ -42,6 +42,13 @@ async function auditViewport(browser, name, viewport) {
   await page.locator(".hover-hit").nth(Math.floor((await page.locator(".hover-hit").count()) / 2)).hover();
   const tooltipAfterHover = await page.locator(".chart-tooltip").last().evaluate((el) => getComputedStyle(el).opacity);
 
+  await page.locator("#cutSelect").selectOption("planning_area");
+  const planningAreaRows = await page.locator("#summaryBody tr").count();
+  const planningAreaChartRows = await page.locator(".bar-row").count();
+  if (planningAreaRows !== planningAreaChartRows) {
+    issues.push(`planning area chart rows ${planningAreaChartRows} did not match table rows ${planningAreaRows}`);
+  }
+
   await mkdir("artifacts", { recursive: true });
   await page.screenshot({ path: `artifacts/dashboard-${name}.png`, fullPage: true });
 
@@ -56,6 +63,8 @@ async function auditViewport(browser, name, viewport) {
     trendRows,
     tooltipBeforeHover,
     tooltipAfterHover,
+    planningAreaRows,
+    planningAreaChartRows,
     issues,
   };
 }

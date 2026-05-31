@@ -117,6 +117,7 @@ function renderMetrics() {
 
 function renderDefinitions() {
   const definitions = state.metadata.return_definitions || {};
+  byId("definitionNote").textContent = definitions[selectedDefinition()] || "";
   byId("definitionCards").innerHTML = Object.entries(definitions)
     .map(
       ([name, description]) => `<article class="definition-card">
@@ -135,7 +136,6 @@ function renderSummary() {
 
   const maxAbs = Math.max(0.01, ...rows.map((row) => Math.abs(row.median)));
   byId("barChart").innerHTML = rows
-    .slice(0, 12)
     .map((row) => {
       const width = Math.max(2, Math.abs(row.median / maxAbs) * 100);
       const cls = row.median < 0 ? "bar negative" : "bar";
@@ -289,6 +289,7 @@ function wireControls() {
   setOptionsFromTrend("holdingSelect", "holding_period_bucket");
 
   ["definitionSelect", "cutSelect"].forEach((id) => byId(id).addEventListener("change", () => {
+    renderDefinitions();
     renderSummary();
     renderTrend();
   }));

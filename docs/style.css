@@ -150,6 +150,18 @@ main {
   font-weight: 650;
 }
 
+.return-control {
+  max-width: 360px;
+}
+
+.definition-note {
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 select {
   min-width: 160px;
   padding: 8px 32px 8px 10px;
@@ -164,6 +176,9 @@ select {
   display: grid;
   gap: 8px;
   margin-bottom: 16px;
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .bar-row {
@@ -227,6 +242,44 @@ th {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fcfcfb;
+}
+
+.trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: -4px 0 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.legend-swatch.median {
+  height: 3px;
+  background: var(--accent);
+}
+
+.legend-swatch.percentile {
+  height: 0;
+  border-top: 2px dashed #7aa8a2;
+  border-radius: 0;
+}
+
+.legend-swatch.band {
+  background: var(--band);
+  border: 1px solid #c9defa;
 }
 
 .axis {
@@ -303,8 +356,15 @@ th {
   font-weight: 700;
 }
 
+.source-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .caveats ul {
   margin-bottom: 0;
+  margin-top: 12px;
   padding-left: 20px;
   color: var(--muted);
 }
@@ -316,6 +376,11 @@ th {
 
   .topbar .control {
     margin-top: 18px;
+  }
+
+  .return-control,
+  .definition-note {
+    max-width: none;
   }
 
   .metrics {

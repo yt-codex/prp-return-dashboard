@@ -12,9 +12,10 @@
         <p class="eyebrow">REALIS repeat-sale aggregates</p>
         <h1>Singapore private residential property returns</h1>
       </div>
-      <label class="control">
+      <label class="control return-control">
         Return definition
         <select id="definitionSelect"></select>
+        <span id="definitionNote" class="definition-note"></span>
       </label>
     </header>
 
@@ -25,7 +26,7 @@
         <div class="panel-head">
           <div>
             <h2>Return definitions</h2>
-            <p>All figures are annualized repeat-sale returns from observed buy/sell transaction pairs.</p>
+            <p>Returns are annualized for holding periods of at least 1 year. Holdings under 1 year use simple holding-period return.</p>
           </div>
         </div>
         <div id="definitionCards" class="definition-grid"></div>
@@ -35,7 +36,7 @@
         <div class="panel-head">
           <div>
             <h2>Cross-sectional cuts</h2>
-            <p>Median annualized returns with interquartile range and sample size.</p>
+            <p>Median returns with interquartile range and sample size. Year and holding-period cuts use chronological order; other cuts sort by median return.</p>
           </div>
           <label class="control">
             Cut
@@ -74,6 +75,11 @@
             <label class="control">Holding <select id="holdingSelect"></select></label>
           </div>
         </div>
+        <div class="trend-legend" aria-label="Trend chart legend">
+          <span><i class="legend-swatch median"></i>Median</span>
+          <span><i class="legend-swatch percentile"></i>P25/P75</span>
+          <span><i class="legend-swatch band"></i>Interquartile band</span>
+        </div>
         <svg id="trendChart" viewBox="0 0 900 280" role="img" aria-label="Annualized return trend"></svg>
         <div class="table-wrap">
           <table>
@@ -95,6 +101,7 @@
       <section class="panel caveats">
         <h2>Methodology caveats</h2>
         <p id="methodology"></p>
+        <p class="source-note">Postal district names follow URA's List of Postal Districts.</p>
         <ul id="assumptions"></ul>
       </section>
     </main>
