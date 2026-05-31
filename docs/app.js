@@ -108,6 +108,10 @@ function displayValue(cut, value) {
   return value;
 }
 
+function selectedTrendView() {
+  return byId("trendViewSelect").value;
+}
+
 function renderMetrics() {
   const meta = state.metadata;
   const metrics = [
@@ -172,7 +176,7 @@ function renderDefinitions() {
   byId("definitionNote").textContent = definitions[selectedDefinition()] || "";
   byId("definitionCards").innerHTML = Object.entries(definitions)
     .map(
-      ([name, description]) => `<article class="definition-card">
+      ([name, description]) => `<article class="definition-card ${name === selectedDefinition() ? "selected" : ""}">
         <h3>${name.replaceAll("_", " ")}</h3>
         <p>${description}</p>
       </article>`
@@ -223,12 +227,17 @@ function setOptionsFromTrend(selectId, field) {
 }
 
 function trendFiltered() {
+  return trendRowsForSaleType("All");
+}
+
+function trendRowsForSaleType(saleType) {
   const checks = [
     ["time_basis", byId("basisSelect").value],
     ["property_segment", byId("segmentSelect").value],
     ["tenure_group", byId("tenureSelect").value],
     ["planning_region", byId("regionSelect").value],
     ["holding_period_bucket", byId("holdingSelect").value],
+    ["buy_sale_type_group", saleType],
   ];
   return state.trend
     .filter((row) => row.return_definition === selectedDefinition())
@@ -236,27 +245,55 @@ function trendFiltered() {
     .sort((a, b) => a.year - b.year);
 }
 
+function splitTrendSeries() {
+  return [
+    { label: "New Sale", rows: trendRowsForSaleType("New Sale"), color: "#2563eb" },
+    { label: "Resale", rows: trendRowsForSaleType("Resale"), color: "#e11d48" },
+  ].filter((series) => series.rows.length >= 2);
+}
+
 function renderTrend() {
   const rows = trendFiltered();
-  byId("trendBody").innerHTML = rows
-    .map(
-      (row) => `<tr>
-        <td>${row.year}</td>
-        <td>${fmtPct.format(row.median)}</td>
-        <td>${fmtPct.format(row.p25)}</td>
-        <td>${fmtPct.format(row.p75)}</td>
-        <td>${fmtPct.format(row.loss_share)}</td>
-        <td>${fmtNum.format(row.n)}</td>
-      </tr>`
-    )
-    .join("");
+  const splitMode = selectedTrendView() === "new_vs_resale";
+  const splitSeries = splitMode ? splitTrendSeries() : [];
+  byId("trendHead").innerHTML = splitMode
+    ? `<tr><th>Year</th><th>Sale type</th><th>Median</th><th>P25</th><th>P75</th><th>Loss share</th><th>n</th></tr>`
+    : `<tr><th>Year</th><th>Median</th><th>P25</th><th>P75</th><th>Loss share</th><th>n</th></tr>`;
+  byId("trendBody").innerHTML = splitMode
+    ? splitSeries
+        .flatMap((series) =>
+          series.rows.map(
+            (row) => `<tr>
+              <td>${row.year}</td>
+              <td>${series.label}</td>
+              <td>${fmtPct.format(row.median)}</td>
+              <td>${fmtPct.format(row.p25)}</td>
+              <td>${fmtPct.format(row.p75)}</td>
+              <td>${fmtPct.format(row.loss_share)}</td>
+              <td>${fmtNum.format(row.n)}</td>
+            </tr>`
+          )
+        )
+        .join("")
+    : rows
+        .map(
+          (row) => `<tr>
+            <td>${row.year}</td>
+            <td>${fmtPct.format(row.median)}</td>
+            <td>${fmtPct.format(row.p25)}</td>
+            <td>${fmtPct.format(row.p75)}</td>
+            <td>${fmtPct.format(row.loss_share)}</td>
+            <td>${fmtNum.format(row.n)}</td>
+          </tr>`
+        )
+        .join("");
 
   const canvas = byId("trendChart");
   if (state.trendChart) {
     state.trendChart.destroy();
     state.trendChart = null;
   }
-  if (rows.length < 2) {
+  if ((!splitMode && rows.length < 2) || (splitMode && splitSeries.length === 0)) {
     const context = canvas.getContext("2d");
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = "#697386";
@@ -265,10 +302,11 @@ function renderTrend() {
     return;
   }
 
-  const values = rows.flatMap((row) => [row.p25, row.p75, row.median]);
+  const chartRows = splitMode ? splitSeries.flatMap((series) => series.rows) : rows;
+  const values = chartRows.flatMap((row) => [row.p25, row.p75, row.median]);
   const minValue = Math.min(-0.05, ...values);
   const maxValue = Math.max(0.05, ...values);
-  const labels = rows.map((row) => String(row.year));
+  const labels = [...new Set(chartRows.map((row) => String(row.year)))].sort((a, b) => Number(a) - Number(b));
   const commonLine = {
     tension: 0.25,
     pointRadius: 2.5,
@@ -276,11 +314,20 @@ function renderTrend() {
     borderWidth: 2,
   };
 
-  state.trendChart = new Chart(canvas, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
+  const alignedValues = (seriesRows, field) => {
+    const valuesByYear = new Map(seriesRows.map((row) => [String(row.year), row[field]]));
+    return labels.map((year) => valuesByYear.get(year) ?? null);
+  };
+  const datasets = splitMode
+    ? splitSeries.map((series) => ({
+        label: series.label,
+        data: alignedValues(series.rows, "median"),
+        borderColor: series.color,
+        backgroundColor: series.color,
+        fill: false,
+        ...commonLine,
+      }))
+    : [
         {
           label: "P75",
           data: rows.map((row) => row.p75),
@@ -310,18 +357,29 @@ function renderTrend() {
           fill: false,
           ...commonLine,
         },
-      ],
+      ];
+
+  state.trendChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels,
+      datasets,
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: { display: splitMode, position: "top", align: "start" },
         tooltip: {
           callbacks: {
             afterBody(items) {
-              const row = rows[items[0].dataIndex];
+              const dataset = items[0].dataset;
+              const saleType = splitMode ? dataset.label : "All";
+              const row = splitMode
+                ? trendRowsForSaleType(saleType).find((item) => String(item.year) === items[0].label)
+                : rows[items[0].dataIndex];
+              if (!row) return [];
               return [`Loss share: ${fmtPct.format(row.loss_share)}`, `n: ${fmtNum.format(row.n)}`];
             },
             label(context) {
@@ -367,6 +425,8 @@ function wireControls() {
   unique(state.summary.map((row) => row.cut)).forEach((cut) => option(byId("cutSelect"), cut, labels[cut] || cut));
   option(byId("basisSelect"), "buy_year", "Buy year");
   option(byId("basisSelect"), "sell_year", "Sell year");
+  option(byId("trendViewSelect"), "overall", "Overall selected trend");
+  option(byId("trendViewSelect"), "new_vs_resale", "New sale vs resale");
   setOptionsFromTrend("segmentSelect", "property_segment");
   setOptionsFromTrend("tenureSelect", "tenure_group");
   setOptionsFromTrend("regionSelect", "planning_region");
@@ -378,10 +438,10 @@ function wireControls() {
     renderSummary();
     renderTrend();
   }));
-  byId("basisSelect").addEventListener("change", () => {
+  ["basisSelect", "trendViewSelect"].forEach((id) => byId(id).addEventListener("change", () => {
     renderSnapshot();
     renderTrend();
-  });
+  }));
   ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"].forEach((id) =>
     byId(id).addEventListener("change", () => {
       renderSnapshot();

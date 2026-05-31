@@ -29,6 +29,7 @@ SUMMARY_DIMENSIONS = [
 TREND_BUY_COHORT_MIN_OBSERVATION_YEARS = 3
 TREND_SELL_YEAR_DROP_FIRST_N_YEARS = 5
 TREND_FILTER_FIELDS = ["property_segment", "tenure_group", "planning_region", "holding_period_bucket"]
+TREND_SPLIT_FIELD = "buy_sale_type_group"
 TREND_SCHEMA = [
     "time_basis",
     "year",
@@ -36,6 +37,7 @@ TREND_SCHEMA = [
     "tenure_group",
     "planning_region",
     "holding_period_bucket",
+    "buy_sale_type_group",
     "return_definition",
     "n",
     "median",
@@ -100,6 +102,14 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
         for subset_size in range(len(TREND_FILTER_FIELDS) + 1):
             for subset in combinations(TREND_FILTER_FIELDS, subset_size):
                 for row in aggregate_returns(trend_source_rows, [basis, *subset], min_n=min_n):
+                    row["time_basis"] = basis
+                    row["year"] = row.pop(basis)
+                    for field in TREND_FILTER_FIELDS:
+                        row.setdefault(field, "All")
+                    row[TREND_SPLIT_FIELD] = "All"
+                    trend_rows.append(row)
+                split_dimensions = [basis, *subset, TREND_SPLIT_FIELD]
+                for row in aggregate_returns(trend_source_rows, split_dimensions, min_n=min_n):
                     row["time_basis"] = basis
                     row["year"] = row.pop(basis)
                     for field in TREND_FILTER_FIELDS:

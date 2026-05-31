@@ -56,11 +56,16 @@ async function auditViewport(browser, name, viewport) {
 
   await page.locator("#segmentSelect").selectOption("Private non-landed");
   await page.locator("#tenureSelect").selectOption("99-year leasehold");
+  await page.locator("#trendViewSelect").selectOption("new_vs_resale");
   const selectedSegment = await page.locator("#segmentSelect").inputValue();
   const selectedTenure = await page.locator("#tenureSelect").inputValue();
+  const selectedTrendView = await page.locator("#trendViewSelect").inputValue();
   const filteredTrendRows = await page.locator("#trendBody tr").count();
   if (selectedSegment !== "Private non-landed" || selectedTenure !== "99-year leasehold") {
     issues.push(`combined filter selection did not persist: segment=${selectedSegment} tenure=${selectedTenure}`);
+  }
+  if (selectedTrendView !== "new_vs_resale") {
+    issues.push(`trend view selection did not persist: ${selectedTrendView}`);
   }
   if (filteredTrendRows < 2) {
     issues.push(`combined segment+tenure filter returned only ${filteredTrendRows} trend rows`);
@@ -81,6 +86,7 @@ async function auditViewport(browser, name, viewport) {
     canvasVisible,
     planningAreaRows,
     planningAreaChartRows,
+    selectedTrendView,
     filteredTrendRows,
     issues,
   };

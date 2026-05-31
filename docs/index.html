@@ -71,6 +71,7 @@
           </div>
           <div class="filters">
             <label class="control">Basis <select id="basisSelect"></select></label>
+            <label class="control">Trend view <select id="trendViewSelect"></select></label>
             <label class="control">Segment <select id="segmentSelect"></select></label>
             <label class="control">Tenure <select id="tenureSelect"></select></label>
             <label class="control">Region <select id="regionSelect"></select></label>
@@ -87,16 +88,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Year</th>
-                <th>Median</th>
-                <th>P25</th>
-                <th>P75</th>
-                <th>Loss share</th>
-                <th>n</th>
-              </tr>
-            </thead>
+            <thead id="trendHead"></thead>
             <tbody id="trendBody"></tbody>
           </table>
         </div>
