@@ -48,7 +48,7 @@ def cost_components(pair: RepeatSalePair) -> dict:
     return {
         "bsd": buyer_stamp_duty(buy_price),
         "ssd": seller_stamp_duty(sell_price, pair.buy_date, pair.sell_date),
-        "sale_agent": sell_price * ASSUMPTIONS["agent_commission_rate"],
+        "sale_agent": sell_price * ASSUMPTIONS["sale_agent_commission_rate"],
         "buy_legal": ASSUMPTIONS["legal_fee_buy"],
         "sell_legal": ASSUMPTIONS["legal_fee_sell"],
         "property_tax": annual_property_tax * years,

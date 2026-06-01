@@ -40,6 +40,8 @@ No ABSD is included, under an own-stay simplifying assumption.
 - `levered_basic`: default LTV/downpayment mortgage equity CAGR with amortization, mortgage interest paid, and selected transaction costs.
 - `levered_full`: `levered_basic` plus property tax and MCST/maintenance proxies.
 
+The default fee model includes one sale-side agent commission on disposal only; it does not charge a buyer-agent commission. The default mortgage interest assumption is 2% p.a.
+
 See `docs/assets/metadata.json` after `make update` for the exact assumption values used in the build.
 
 ## Cuts

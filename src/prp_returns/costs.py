@@ -8,13 +8,14 @@ ASSUMPTIONS = {
     "absd": "Excluded: own-stay/no ABSD assumption.",
     "bsd": "Residential BSD uses current marginal rates: 1% first S$180k, 2% next S$180k, 3% next S$640k, 4% next S$500k, 5% next S$1.5m, 6% above S$3m.",
     "ssd": "Historical residential SSD schedule by acquisition date: none before 20 Feb 2010; transitional BSD-based regimes in 2010; 16/12/8/4% for 14 Jan 2011-10 Mar 2017 acquisitions; 12/8/4% for 11 Mar 2017-3 Jul 2025 acquisitions; 16/12/8/4% for acquisitions from 4 Jul 2025.",
-    "agent_commission_rate": 0.02,
+    "agent_commission": "Modeled as one sale-side agent commission on disposal only; no buyer-agent commission is charged. Actual commissions are negotiable and can differ.",
+    "sale_agent_commission_rate": 0.02,
     "legal_fee_buy": 3000,
     "legal_fee_sell": 3000,
     "property_tax_rate_annual": 0.002,
     "maintenance_psf_monthly": 0.35,
     "default_ltv": 0.75,
-    "mortgage_interest_rate_annual": 0.035,
+    "mortgage_interest_rate_annual": 0.02,
     "mortgage_term_years": 25,
 }
 
