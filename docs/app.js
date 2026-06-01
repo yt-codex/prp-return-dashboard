@@ -1,5 +1,16 @@
 const fmtPct = new Intl.NumberFormat("en-SG", { style: "percent", maximumFractionDigits: 1 });
 const fmtNum = new Intl.NumberFormat("en-SG");
+const fmtCurrency = new Intl.NumberFormat("en-SG", {
+  style: "currency",
+  currency: "SGD",
+  maximumFractionDigits: 0,
+});
+const fmtCurrencyCents = new Intl.NumberFormat("en-SG", {
+  style: "currency",
+  currency: "SGD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 const state = {
   summary: [],
@@ -416,8 +427,21 @@ function renderMethodology() {
   byId("methodology").textContent =
     "Returns are computed from exact Project Name + Address + Postal Code sequential repeat-sale pairs. The exported JSON contains aggregate statistics only.";
   byId("assumptions").innerHTML = Object.entries(meta.assumptions)
-    .map(([key, value]) => `<li><strong>${key.replaceAll("_", " ")}</strong>: ${value}</li>`)
+    .map(([key, value]) => `<li><strong>${formatAssumptionLabel(key)}</strong>: ${formatAssumptionValue(key, value)}</li>`)
     .join("");
+}
+
+function formatAssumptionLabel(key) {
+  return key.replaceAll("_", " ");
+}
+
+function formatAssumptionValue(key, value) {
+  if (typeof value !== "number") return value;
+  if (key.includes("rate") || key === "default_ltv") return fmtPct.format(value);
+  if (key.startsWith("legal_fee")) return fmtCurrency.format(value);
+  if (key === "maintenance_psf_monthly") return `${fmtCurrencyCents.format(value)} psf/month`;
+  if (key.endsWith("_years")) return `${fmtNum.format(value)} years`;
+  return fmtNum.format(value);
 }
 
 function wireControls() {
