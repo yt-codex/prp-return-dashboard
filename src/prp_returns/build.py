@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from itertools import combinations
+import gzip
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,13 +23,14 @@ SUMMARY_DIMENSIONS = [
     "postal_district",
     "age_at_purchase_bucket",
     "holding_period_bucket",
+    "floor_area_bucket",
     "buy_year",
     "sell_year",
 ]
 
 TREND_BUY_COHORT_MIN_OBSERVATION_YEARS = 3
 TREND_SELL_YEAR_DROP_FIRST_N_YEARS = 5
-TREND_FILTER_FIELDS = ["property_segment", "tenure_group", "planning_region", "holding_period_bucket"]
+TREND_FILTER_FIELDS = ["property_segment", "tenure_group", "planning_region", "holding_period_bucket", "floor_area_bucket"]
 TREND_SPLIT_FIELD = "buy_sale_type_group"
 TREND_SCHEMA = [
     "time_basis",
@@ -37,6 +39,7 @@ TREND_SCHEMA = [
     "tenure_group",
     "planning_region",
     "holding_period_bucket",
+    "floor_area_bucket",
     "buy_sale_type_group",
     "return_definition",
     "n",
@@ -77,6 +80,13 @@ def filter_rows_for_trend_basis(rows: list[dict], basis: str, latest_source_mont
 def write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+
+
+def write_gzip_json(path: Path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    with gzip.open(path, "wb", compresslevel=9) as handle:
+        handle.write(content)
 
 
 def compact_trend_rows(rows: list[dict]) -> dict:
@@ -134,7 +144,10 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
     }
 
     write_json(out_dir / "summary.json", summary)
-    write_json(out_dir / "trend.json", compact_trend_rows(trend_rows))
+    trend_json_path = out_dir / "trend.json"
+    if trend_json_path.exists():
+        trend_json_path.unlink()
+    write_gzip_json(out_dir / "trend.json.gz", compact_trend_rows(trend_rows))
     write_json(out_dir / "metadata.json", metadata)
     return metadata
 

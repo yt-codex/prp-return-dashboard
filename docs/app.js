@@ -28,6 +28,7 @@ const labels = {
   postal_district: "Postal district",
   age_at_purchase_bucket: "Age at purchase",
   holding_period_bucket: "Holding period",
+  floor_area_bucket: "Floor area",
   buy_year: "Buy year",
   sell_year: "Sell year",
 };
@@ -100,12 +101,28 @@ function holdingSortValue(value) {
   return order[value] ?? 99;
 }
 
+function floorAreaSortValue(value) {
+  const order = {
+    "Shoebox / micro (<50 sqm / <538 sqft)": 0,
+    "Compact (50-70 sqm / 538-753 sqft)": 1,
+    "Mid-size (70-90 sqm / 753-969 sqft)": 2,
+    "Standard family (90-120 sqm / 969-1,292 sqft)": 3,
+    "Large family (120-150 sqm / 1,292-1,615 sqft)": 4,
+    "Very large / luxury (≥150 sqm / ≥1,615 sqft)": 5,
+    "Unknown area": 99,
+  };
+  return order[value] ?? 98;
+}
+
 function crossSectionSort(cut) {
   if (cut === "buy_year" || cut === "sell_year") {
     return (a, b) => Number(a.value) - Number(b.value);
   }
   if (cut === "holding_period_bucket") {
     return (a, b) => holdingSortValue(a.value) - holdingSortValue(b.value);
+  }
+  if (cut === "floor_area_bucket") {
+    return (a, b) => floorAreaSortValue(a.value) - floorAreaSortValue(b.value);
   }
   return (a, b) => b.median - a.median || b.n - a.n;
 }
@@ -249,6 +266,7 @@ function trendRowsForSaleType(saleType) {
     ["tenure_group", byId("tenureSelect").value],
     ["planning_region", byId("regionSelect").value],
     ["holding_period_bucket", byId("holdingSelect").value],
+    ["floor_area_bucket", byId("areaSelect").value],
     ["buy_sale_type_group", saleType],
   ];
   return state.trend
@@ -456,6 +474,7 @@ function wireControls() {
   setOptionsFromTrend("tenureSelect", "tenure_group");
   setOptionsFromTrend("regionSelect", "planning_region");
   setOptionsFromTrend("holdingSelect", "holding_period_bucket");
+  setOptionsFromTrend("areaSelect", "floor_area_bucket");
 
   ["definitionSelect", "cutSelect"].forEach((id) => byId(id).addEventListener("change", () => {
     renderDefinitions();
@@ -467,7 +486,7 @@ function wireControls() {
     renderSnapshot();
     renderTrend();
   }));
-  ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect"].forEach((id) =>
+  ["segmentSelect", "tenureSelect", "regionSelect", "holdingSelect", "areaSelect"].forEach((id) =>
     byId(id).addEventListener("change", () => {
       renderSnapshot();
       renderTrend();
@@ -475,10 +494,20 @@ function wireControls() {
   );
 }
 
+async function fetchGzipJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
+  if (!window.DecompressionStream) {
+    throw new Error("This browser cannot decompress the trend asset.");
+  }
+  const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
+  return new Response(stream).json();
+}
+
 async function init() {
   const [summary, trend, metadata] = await Promise.all([
     fetch("assets/summary.json").then((res) => res.json()),
-    fetch("assets/trend.json").then((res) => res.json()),
+    fetchGzipJson("assets/trend.json.gz"),
     fetch("assets/metadata.json").then((res) => res.json()),
   ]);
   state.summary = summary;

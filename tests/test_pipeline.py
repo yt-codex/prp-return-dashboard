@@ -7,7 +7,7 @@ from prp_returns.io import read_transactions
 from prp_returns.aggregation import aggregate_returns
 from prp_returns.build import filter_rows_for_trend_basis
 from prp_returns.costs import annualized_return, buyer_stamp_duty, seller_stamp_duty
-from prp_returns.features import property_segment, tenure_group
+from prp_returns.features import floor_area_bucket, property_segment, tenure_group
 from prp_returns.pairs import make_repeat_sale_pairs
 
 
@@ -21,6 +21,7 @@ def tx(project, address, postal, sale_date, price, property_type="Condominium", 
         "property_type": property_type,
         "tenure": tenure,
         "type_of_sale": "Resale",
+        "area_sqft": 1000,
         "completion_date": "2010",
         "planning_region": "Central Region",
         "planning_area": "Outram",
@@ -66,6 +67,20 @@ class PipelineTests(unittest.TestCase):
         for raw, expected in cases:
             with self.subTest(raw=raw):
                 self.assertEqual(property_segment(raw), expected)
+
+    def test_floor_area_bucket_uses_sqm_bands_with_sqft_input(self):
+        cases = [
+            (500, "Shoebox / micro (<50 sqm / <538 sqft)"),
+            (600, "Compact (50-70 sqm / 538-753 sqft)"),
+            (800, "Mid-size (70-90 sqm / 753-969 sqft)"),
+            (1100, "Standard family (90-120 sqm / 969-1,292 sqft)"),
+            (1400, "Large family (120-150 sqm / 1,292-1,615 sqft)"),
+            (1700, "Very large / luxury (≥150 sqm / ≥1,615 sqft)"),
+            (None, "Unknown area"),
+        ]
+        for area_sqft, expected in cases:
+            with self.subTest(area_sqft=area_sqft):
+                self.assertEqual(floor_area_bucket(area_sqft), expected)
 
     def test_tenure_group(self):
         cases = [

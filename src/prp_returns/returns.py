@@ -8,7 +8,7 @@ from .costs import (
     seller_stamp_duty,
     total_interest_paid,
 )
-from .features import age_bucket, holding_period_bucket, property_segment, sale_type_group, tenure_group
+from .features import age_bucket, floor_area_bucket, holding_period_bucket, property_segment, sale_type_group, tenure_group
 from .pairs import RepeatSalePair
 
 
@@ -31,6 +31,7 @@ def pair_features(pair: RepeatSalePair) -> dict:
         "planning_area": buy.get("planning_area") or "Unknown",
         "postal_district": buy.get("postal_district") or "Unknown",
         "holding_period_bucket": holding_period_bucket(pair.holding_years),
+        "floor_area_bucket": floor_area_bucket(buy.get("area_sqft")),
         "buy_year": pair.buy_date.year,
         "sell_year": pair.sell_date.year,
         "age_at_purchase_bucket": age_bucket(buy.get("completion_date"), pair.buy_date),

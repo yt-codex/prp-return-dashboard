@@ -73,6 +73,18 @@ def age_bucket(completion: object, buy_date: date) -> str:
     return "31+ years"
 
 
+SQFT_PER_SQM = 10.7639
+
+FLOOR_AREA_BUCKETS = [
+    ("Shoebox / micro (<50 sqm / <538 sqft)", 0, 50),
+    ("Compact (50-70 sqm / 538-753 sqft)", 50, 70),
+    ("Mid-size (70-90 sqm / 753-969 sqft)", 70, 90),
+    ("Standard family (90-120 sqm / 969-1,292 sqft)", 90, 120),
+    ("Large family (120-150 sqm / 1,292-1,615 sqft)", 120, 150),
+    ("Very large / luxury (≥150 sqm / ≥1,615 sqft)", 150, None),
+]
+
+
 def holding_period_bucket(years: float) -> str:
     if years < 1:
         return "<1 year"
@@ -83,4 +95,19 @@ def holding_period_bucket(years: float) -> str:
     if years < 10:
         return "5-10 years"
     return "10+ years"
+
+
+def floor_area_bucket(area_sqft: object) -> str:
+    try:
+        sqft = float(area_sqft or 0)
+    except (TypeError, ValueError):
+        return "Unknown area"
+    if sqft <= 0:
+        return "Unknown area"
+
+    sqm = sqft / SQFT_PER_SQM
+    for label, lower, upper in FLOOR_AREA_BUCKETS:
+        if sqm >= lower and (upper is None or sqm < upper):
+            return label
+    return "Unknown area"
 
