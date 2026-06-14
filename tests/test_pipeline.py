@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from prp_returns.io import read_transactions
-from prp_returns.aggregation import aggregate_returns
+from prp_returns.aggregation import aggregate_metric, aggregate_returns
 from prp_returns.build import filter_rows_for_trend_basis
 from prp_returns.costs import annualized_return, buyer_stamp_duty, seller_stamp_duty
 from prp_returns.features import floor_area_bucket, property_segment, tenure_group
@@ -149,6 +149,29 @@ class PipelineTests(unittest.TestCase):
                     "p25": -0.025,
                     "p75": 0.125,
                     "loss_share": 0.25,
+                }
+            ],
+        )
+
+    def test_aggregate_metric_reports_holding_period_percentiles_without_return_definition(self):
+        rows = [
+            {"sell_year": 2020, "segment": "A", "holding_years": 2},
+            {"sell_year": 2020, "segment": "A", "holding_years": 4},
+            {"sell_year": 2020, "segment": "A", "holding_years": 8},
+        ]
+
+        result = aggregate_metric(rows, ["sell_year", "segment"], "holding_years", min_n=1)
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "sell_year": 2020,
+                    "segment": "A",
+                    "n": 3,
+                    "median": 4,
+                    "p25": 3,
+                    "p75": 6,
                 }
             ],
         )

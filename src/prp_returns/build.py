@@ -7,11 +7,11 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .aggregation import aggregate_returns
+from .aggregation import aggregate_metric, aggregate_returns
 from .costs import ASSUMPTIONS
 from .io import read_transactions
 from .pairs import make_repeat_sale_pairs
-from .returns import RETURN_DEFINITIONS, returns_for_pair
+from .returns import RETURN_DEFINITIONS, pair_features, returns_for_pair
 
 
 SUMMARY_DIMENSIONS = [
@@ -47,6 +47,20 @@ TREND_SCHEMA = [
     "p25",
     "p75",
     "loss_share",
+]
+HOLDING_TREND_FILTER_FIELDS = ["property_segment", "tenure_group", "planning_region", "floor_area_bucket"]
+HOLDING_TREND_SPLIT_FIELD = "buy_sale_type_group"
+HOLDING_TREND_SCHEMA = [
+    "sell_year",
+    "property_segment",
+    "tenure_group",
+    "planning_region",
+    "floor_area_bucket",
+    "buy_sale_type_group",
+    "n",
+    "median",
+    "p25",
+    "p75",
 ]
 
 
@@ -93,11 +107,20 @@ def compact_trend_rows(rows: list[dict]) -> dict:
     return {"schema": TREND_SCHEMA, "rows": [[row.get(field) for field in TREND_SCHEMA] for row in rows]}
 
 
+def compact_holding_trend_rows(rows: list[dict]) -> dict:
+    return {"schema": HOLDING_TREND_SCHEMA, "rows": [[row.get(field) for field in HOLDING_TREND_SCHEMA] for row in rows]}
+
+
 def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
     transactions, source_meta = read_transactions(source_dir)
     valid_rows = [row for row in transactions if row.get("sale_date") and row.get("price")]
     pairs = make_repeat_sale_pairs(valid_rows)
     return_rows = [row for pair in pairs for row in returns_for_pair(pair)]
+    pair_rows = []
+    for pair in pairs:
+        row = pair_features(pair)
+        row["holding_years"] = round(pair.holding_years, 3)
+        pair_rows.append(row)
 
     summary = []
     for dimension in SUMMARY_DIMENSIONS:
@@ -126,6 +149,21 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
                         row.setdefault(field, "All")
                     trend_rows.append(row)
 
+    holding_trend_rows = []
+    holding_source_rows = filter_rows_for_trend_basis(pair_rows, "sell_year", source_meta.get("latest_source_month"))
+    for subset_size in range(len(HOLDING_TREND_FILTER_FIELDS) + 1):
+        for subset in combinations(HOLDING_TREND_FILTER_FIELDS, subset_size):
+            for row in aggregate_metric(holding_source_rows, ["sell_year", *subset], "holding_years", min_n=min_n):
+                for field in HOLDING_TREND_FILTER_FIELDS:
+                    row.setdefault(field, "All")
+                row[HOLDING_TREND_SPLIT_FIELD] = "All"
+                holding_trend_rows.append(row)
+            split_dimensions = ["sell_year", *subset, HOLDING_TREND_SPLIT_FIELD]
+            for row in aggregate_metric(holding_source_rows, split_dimensions, "holding_years", min_n=min_n):
+                for field in HOLDING_TREND_FILTER_FIELDS:
+                    row.setdefault(field, "All")
+                holding_trend_rows.append(row)
+
     metadata = {
         **source_meta,
         "build_timestamp": datetime.now(timezone.utc).isoformat(),
@@ -139,6 +177,7 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
         "trend_policy": {
             "buy_year": f"Excludes buy cohorts with less than {TREND_BUY_COHORT_MIN_OBSERVATION_YEARS} years of observation from the latest source month.",
             "sell_year": f"Excludes the first {TREND_SELL_YEAR_DROP_FIRST_N_YEARS} sell years and excludes the latest sell year when the source month is not December, because those edge cohorts are less comparable.",
+            "holding_period_sell_year": "Median holding period by sell year uses unique exact-unit repeat-sale pairs, not one row per return definition.",
         },
         "privacy": "Assets contain aggregate statistics only; raw rows, addresses, postal codes, and unit-level chains are not exported.",
     }
@@ -148,6 +187,7 @@ def build(source_dir: Path, out_dir: Path, min_n: int) -> dict:
     if trend_json_path.exists():
         trend_json_path.unlink()
     write_gzip_json(out_dir / "trend.json.gz", compact_trend_rows(trend_rows))
+    write_gzip_json(out_dir / "holding_trend.json.gz", compact_holding_trend_rows(holding_trend_rows))
     write_json(out_dir / "metadata.json", metadata)
     return metadata
 

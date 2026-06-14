@@ -344,7 +344,8 @@ th {
     #fdfefe;
 }
 
-#trendChart {
+#trendChart,
+#holdingTrendChart {
   width: 100%;
   height: 100%;
 }

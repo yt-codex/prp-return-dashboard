@@ -101,6 +101,39 @@
         </details>
       </section>
 
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Holding-period trend for sold units</h2>
+            <p>Median time between purchase and resale for exact-unit repeat-sale pairs, grouped by sell year. Filters use the purchase-side unit attributes.</p>
+          </div>
+          <div class="filters">
+            <label class="control">Trend view <select id="holdingTrendViewSelect"></select></label>
+            <label class="control">Segment <select id="holdingTrendSegmentSelect"></select></label>
+            <label class="control">Tenure <select id="holdingTrendTenureSelect"></select></label>
+            <label class="control">Region <select id="holdingTrendRegionSelect"></select></label>
+            <label class="control">Floor area <select id="holdingTrendAreaSelect"></select></label>
+          </div>
+        </div>
+        <div class="trend-legend" aria-label="Holding-period trend chart legend">
+          <span><i class="legend-swatch median"></i>Median holding years</span>
+          <span><i class="legend-swatch percentile"></i>P25/P75</span>
+          <span><i class="legend-swatch band"></i>Interquartile band</span>
+        </div>
+        <div class="chart-shell">
+          <canvas id="holdingTrendChart" aria-label="Holding-period trend chart"></canvas>
+        </div>
+        <details class="table-disclosure" id="holdingTrendTableToggle">
+          <summary>Holding-period trend table</summary>
+          <div class="table-wrap">
+            <table>
+              <thead id="holdingTrendHead"></thead>
+              <tbody id="holdingTrendBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
       <section class="panel caveats">
         <h2>Methodology caveats</h2>
         <p id="methodology"></p>

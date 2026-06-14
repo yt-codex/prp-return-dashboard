@@ -15,8 +15,10 @@ const fmtCurrencyCents = new Intl.NumberFormat("en-SG", {
 const state = {
   summary: [],
   trend: [],
+  holdingTrend: [],
   metadata: null,
   trendChart: null,
+  holdingChart: null,
 };
 
 const labels = {
@@ -88,6 +90,11 @@ function selectedDefinition() {
 function normalizeTrend(payload) {
   if (Array.isArray(payload)) return payload;
   return payload.rows.map((row) => Object.fromEntries(payload.schema.map((field, index) => [field, row[index]])));
+}
+
+function fmtYears(value) {
+  if (value === null || value === undefined) return "-";
+  return `${fmtNum.format(Number(value).toFixed(1))} yrs`;
 }
 
 function holdingSortValue(value) {
@@ -252,6 +259,15 @@ function setOptionsFromTrend(selectId, field) {
   select.innerHTML = "";
   option(select, "All", "All");
   unique(state.trend.map((row) => row[field]).filter((value) => value !== "All")).forEach((value) => option(select, value));
+  if ([...select.options].some((item) => item.value === current)) select.value = current;
+}
+
+function setOptionsFromHoldingTrend(selectId, field) {
+  const select = byId(selectId);
+  const current = select.value;
+  select.innerHTML = "";
+  option(select, "All", "All");
+  unique(state.holdingTrend.map((row) => row[field]).filter((value) => value !== "All")).forEach((value) => option(select, value));
   if ([...select.options].some((item) => item.value === current)) select.value = current;
 }
 
@@ -440,6 +456,167 @@ function renderTrend() {
   });
 }
 
+function holdingRowsForSaleType(saleType) {
+  const checks = [
+    ["property_segment", byId("holdingTrendSegmentSelect").value],
+    ["tenure_group", byId("holdingTrendTenureSelect").value],
+    ["planning_region", byId("holdingTrendRegionSelect").value],
+    ["floor_area_bucket", byId("holdingTrendAreaSelect").value],
+    ["buy_sale_type_group", saleType],
+  ];
+  return state.holdingTrend
+    .filter((row) => checks.every(([field, value]) => String(row[field]) === String(value)))
+    .sort((a, b) => a.sell_year - b.sell_year);
+}
+
+function selectedHoldingTrendView() {
+  return byId("holdingTrendViewSelect").value;
+}
+
+function holdingSplitSeries() {
+  return [
+    { label: "New Sale", rows: holdingRowsForSaleType("New Sale"), color: "#2563eb" },
+    { label: "Resale", rows: holdingRowsForSaleType("Resale"), color: "#e11d48" },
+  ].filter((series) => series.rows.length >= 2);
+}
+
+function renderHoldingTrend() {
+  const rows = holdingRowsForSaleType("All");
+  const splitMode = selectedHoldingTrendView() === "new_vs_resale";
+  const splitSeries = splitMode ? holdingSplitSeries() : [];
+  byId("holdingTrendHead").innerHTML = splitMode
+    ? `<tr><th>Sell year</th><th>Buy sale type</th><th>Median held</th><th>P25</th><th>P75</th><th>n</th></tr>`
+    : `<tr><th>Sell year</th><th>Median held</th><th>P25</th><th>P75</th><th>n</th></tr>`;
+  byId("holdingTrendBody").innerHTML = splitMode
+    ? splitSeries
+        .flatMap((series) =>
+          series.rows.map(
+            (row) => `<tr>
+              <td>${row.sell_year}</td>
+              <td>${series.label}</td>
+              <td>${fmtYears(row.median)}</td>
+              <td>${fmtYears(row.p25)}</td>
+              <td>${fmtYears(row.p75)}</td>
+              <td>${fmtNum.format(row.n)}</td>
+            </tr>`
+          )
+        )
+        .join("")
+    : rows
+        .map(
+          (row) => `<tr>
+            <td>${row.sell_year}</td>
+            <td>${fmtYears(row.median)}</td>
+            <td>${fmtYears(row.p25)}</td>
+            <td>${fmtYears(row.p75)}</td>
+            <td>${fmtNum.format(row.n)}</td>
+          </tr>`
+        )
+        .join("");
+
+  const canvas = byId("holdingTrendChart");
+  if (state.holdingChart) {
+    state.holdingChart.destroy();
+    state.holdingChart = null;
+  }
+  if ((!splitMode && rows.length < 2) || (splitMode && splitSeries.length === 0)) {
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#697386";
+    context.font = "14px sans-serif";
+    context.fillText("Not enough matching holding-period rows.", 24, 42);
+    return;
+  }
+
+  const chartRows = splitMode ? splitSeries.flatMap((series) => series.rows) : rows;
+  const values = chartRows.flatMap((row) => [row.p25, row.p75, row.median]);
+  const minValue = Math.max(0, Math.floor(Math.min(...values)) - 1);
+  const maxValue = Math.ceil(Math.max(...values)) + 1;
+  const yearLabels = [...new Set(chartRows.map((row) => String(row.sell_year)))].sort((a, b) => Number(a) - Number(b));
+  const alignedValues = (seriesRows, field) => {
+    const valuesByYear = new Map(seriesRows.map((row) => [String(row.sell_year), row[field]]));
+    return yearLabels.map((year) => valuesByYear.get(year) ?? null);
+  };
+  const commonLine = { tension: 0.25, pointRadius: 2.5, pointHoverRadius: 5, borderWidth: 2 };
+  const datasets = splitMode
+    ? splitSeries.map((series) => ({
+        label: series.label,
+        data: alignedValues(series.rows, "median"),
+        borderColor: series.color,
+        backgroundColor: series.color,
+        fill: false,
+        ...commonLine,
+      }))
+    : [
+        {
+          label: "P75",
+          data: rows.map((row) => row.p75),
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(37, 99, 235, 0.14)",
+          fill: "+1",
+          pointRadius: 0,
+          borderWidth: 1.5,
+          tension: 0.25,
+        },
+        {
+          label: "P25",
+          data: rows.map((row) => row.p25),
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(37, 99, 235, 0.14)",
+          fill: false,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          borderDash: [5, 5],
+          tension: 0.25,
+        },
+        {
+          label: "Median held",
+          data: rows.map((row) => row.median),
+          borderColor: "#2563eb",
+          backgroundColor: "#2563eb",
+          fill: false,
+          ...commonLine,
+        },
+      ];
+
+  state.holdingChart = new Chart(canvas, {
+    type: "line",
+    data: { labels: yearLabels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: splitMode, position: "top", align: "start" },
+        tooltip: {
+          callbacks: {
+            afterBody(items) {
+              const dataset = items[0].dataset;
+              const saleType = splitMode ? dataset.label : "All";
+              const row = splitMode
+                ? holdingRowsForSaleType(saleType).find((item) => String(item.sell_year) === items[0].label)
+                : rows[items[0].dataIndex];
+              return row ? [`n: ${fmtNum.format(row.n)}`] : [];
+            },
+            label(context) {
+              return `${context.dataset.label}: ${fmtYears(context.parsed.y)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { grid: { color: "rgba(105, 115, 134, 0.12)" }, ticks: { maxTicksLimit: 9, color: "#697386" } },
+        y: {
+          min: minValue,
+          max: maxValue,
+          grid: { color: "rgba(105, 115, 134, 0.16)" },
+          ticks: { maxTicksLimit: 7, color: "#697386", callback: (value) => `${value} yrs` },
+        },
+      },
+    },
+  });
+}
+
 function renderMethodology() {
   const meta = state.metadata;
   byId("methodology").textContent =
@@ -475,6 +652,12 @@ function wireControls() {
   setOptionsFromTrend("regionSelect", "planning_region");
   setOptionsFromTrend("holdingSelect", "holding_period_bucket");
   setOptionsFromTrend("areaSelect", "floor_area_bucket");
+  option(byId("holdingTrendViewSelect"), "overall", "Overall selected trend");
+  option(byId("holdingTrendViewSelect"), "new_vs_resale", "New sale vs resale");
+  setOptionsFromHoldingTrend("holdingTrendSegmentSelect", "property_segment");
+  setOptionsFromHoldingTrend("holdingTrendTenureSelect", "tenure_group");
+  setOptionsFromHoldingTrend("holdingTrendRegionSelect", "planning_region");
+  setOptionsFromHoldingTrend("holdingTrendAreaSelect", "floor_area_bucket");
 
   ["definitionSelect", "cutSelect"].forEach((id) => byId(id).addEventListener("change", () => {
     renderDefinitions();
@@ -492,6 +675,13 @@ function wireControls() {
       renderTrend();
     })
   );
+  [
+    "holdingTrendViewSelect",
+    "holdingTrendSegmentSelect",
+    "holdingTrendTenureSelect",
+    "holdingTrendRegionSelect",
+    "holdingTrendAreaSelect",
+  ].forEach((id) => byId(id).addEventListener("change", renderHoldingTrend));
 }
 
 async function fetchGzipJson(url) {
@@ -505,13 +695,15 @@ async function fetchGzipJson(url) {
 }
 
 async function init() {
-  const [summary, trend, metadata] = await Promise.all([
+  const [summary, trend, holdingTrend, metadata] = await Promise.all([
     fetch("assets/summary.json").then((res) => res.json()),
     fetchGzipJson("assets/trend.json.gz"),
+    fetchGzipJson("assets/holding_trend.json.gz"),
     fetch("assets/metadata.json").then((res) => res.json()),
   ]);
   state.summary = summary;
   state.trend = normalizeTrend(trend);
+  state.holdingTrend = normalizeTrend(holdingTrend);
   state.metadata = metadata;
   wireControls();
   renderMetrics();
@@ -519,6 +711,7 @@ async function init() {
   renderDefinitions();
   renderSummary();
   renderTrend();
+  renderHoldingTrend();
   renderMethodology();
 }
 

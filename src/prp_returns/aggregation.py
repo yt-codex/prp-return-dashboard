@@ -44,3 +44,29 @@ def aggregate_returns(
         rec["loss_share"] = round(sum(1 for v in vals if v < 0) / len(vals), 6)
         out.append(rec)
     return sorted(out, key=lambda r: tuple(str(r.get(dim, "")) for dim in dims) + (str(r["return_definition"]),))
+
+
+def aggregate_metric(
+    rows: Iterable[dict[str, Any]],
+    dims: list[str],
+    value_field: str,
+    min_n: int = 1,
+) -> list[dict[str, Any]]:
+    groups: dict[tuple[Any, ...], list[float]] = defaultdict(list)
+    for row in rows:
+        value = row.get(value_field)
+        if value is None:
+            continue
+        key = tuple(row.get(dim, "All") for dim in dims)
+        groups[key].append(float(value))
+    out = []
+    for key, vals in groups.items():
+        if len(vals) < min_n:
+            continue
+        rec = {dim: key[i] for i, dim in enumerate(dims)}
+        rec["n"] = len(vals)
+        rec["median"] = quantile(vals, 0.5)
+        rec["p25"] = quantile(vals, 0.25)
+        rec["p75"] = quantile(vals, 0.75)
+        out.append(rec)
+    return sorted(out, key=lambda r: tuple(str(r.get(dim, "")) for dim in dims))

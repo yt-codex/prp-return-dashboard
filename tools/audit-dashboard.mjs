@@ -31,17 +31,22 @@ async function auditViewport(browser, name, viewport) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.waitForSelector("#summaryBody tr", { state: "attached" });
   await page.waitForSelector("#trendBody tr", { state: "attached" });
+  await page.waitForSelector("#holdingTrendBody tr", { state: "attached" });
 
   const metrics = await page.locator(".metric").count();
   const definitionCards = await page.locator(".definition-card").count();
   const summaryRows = await page.locator("#summaryBody tr").count();
   const chartRows = await page.locator(".bar-row").count();
   const trendRows = await page.locator("#trendBody tr").count();
+  const holdingTrendRows = await page.locator("#holdingTrendBody tr").count();
   const canvasVisible = await page.locator("#trendChart").isVisible();
+  const holdingCanvasVisible = await page.locator("#holdingTrendChart").isVisible();
   const summaryTableOpenDefault = await page.locator("#summaryTableToggle").evaluate((element) => element.open);
   const trendTableOpenDefault = await page.locator("#trendTableToggle").evaluate((element) => element.open);
+  const holdingTrendTableOpenDefault = await page.locator("#holdingTrendTableToggle").evaluate((element) => element.open);
   if (summaryTableOpenDefault) issues.push("cross-sectional table is open by default");
   if (trendTableOpenDefault) issues.push("time trend table is open by default");
+  if (holdingTrendTableOpenDefault) issues.push("holding-period trend table is open by default");
 
   await page.locator("#summaryTableToggle summary").click();
   const summaryTableOpens = await page.locator("#summaryTableToggle").evaluate((element) => element.open);
@@ -49,8 +54,12 @@ async function auditViewport(browser, name, viewport) {
   await page.locator("#trendTableToggle summary").click();
   const trendTableOpens = await page.locator("#trendTableToggle").evaluate((element) => element.open);
   await page.locator("#trendTableToggle summary").click();
+  await page.locator("#holdingTrendTableToggle summary").click();
+  const holdingTrendTableOpens = await page.locator("#holdingTrendTableToggle").evaluate((element) => element.open);
+  await page.locator("#holdingTrendTableToggle summary").click();
   if (!summaryTableOpens) issues.push("cross-sectional table disclosure did not open");
   if (!trendTableOpens) issues.push("time trend table disclosure did not open");
+  if (!holdingTrendTableOpens) issues.push("holding-period trend table disclosure did not open");
 
   const allOptionCounts = await Promise.all(
     ["#segmentSelect", "#tenureSelect", "#regionSelect", "#holdingSelect"].map((selector) =>
@@ -85,6 +94,18 @@ async function auditViewport(browser, name, viewport) {
     issues.push(`combined segment+tenure filter returned only ${filteredTrendRows} trend rows`);
   }
 
+  await page.locator("#holdingTrendSegmentSelect").selectOption("Private non-landed");
+  await page.locator("#holdingTrendTenureSelect").selectOption("99-year leasehold");
+  await page.locator("#holdingTrendViewSelect").selectOption("new_vs_resale");
+  const selectedHoldingTrendView = await page.locator("#holdingTrendViewSelect").inputValue();
+  const filteredHoldingTrendRows = await page.locator("#holdingTrendBody tr").count();
+  if (selectedHoldingTrendView !== "new_vs_resale") {
+    issues.push(`holding trend view selection did not persist: ${selectedHoldingTrendView}`);
+  }
+  if (filteredHoldingTrendRows < 2) {
+    issues.push(`combined segment+tenure filter returned only ${filteredHoldingTrendRows} holding-period trend rows`);
+  }
+
   await mkdir("artifacts", { recursive: true });
   await page.screenshot({ path: `artifacts/dashboard-${name}.png`, fullPage: true });
 
@@ -97,13 +118,18 @@ async function auditViewport(browser, name, viewport) {
     summaryRows,
     chartRows,
     trendRows,
+    holdingTrendRows,
     canvasVisible,
+    holdingCanvasVisible,
     summaryTableOpenDefault,
     trendTableOpenDefault,
+    holdingTrendTableOpenDefault,
     planningAreaRows,
     planningAreaChartRows,
     selectedTrendView,
     filteredTrendRows,
+    selectedHoldingTrendView,
+    filteredHoldingTrendRows,
     issues,
   };
 }
